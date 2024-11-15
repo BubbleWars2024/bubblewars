@@ -1,0 +1,38 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: ERP
+    network: base-sepolia
+    source:
+      address: "0x1e90d73CB5c1b9bC023C138CBE5D55cfaB658eaB"
+      abi: ERP
+      startBlock: 17965592
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Approval
+        - ApprovalForAll
+        - NewReferralProgram
+        - SetReferral
+        - Transfer
+      abis:
+        - name: ERP
+          file: ./abis/ERP.json
+      eventHandlers:
+        - event: Approval(indexed address,indexed address,indexed uint256)
+          handler: handleApproval
+        - event: ApprovalForAll(indexed address,indexed address,bool)
+          handler: handleApprovalForAll
+        - event: NewReferralProgram(indexed address,indexed uint256)
+          handler: handleNewReferralProgram
+        - event: SetReferral(indexed uint256,indexed address,indexed address)
+          handler: handleSetReferral
+        - event: Transfer(indexed address,indexed address,indexed uint256)
+          handler: handleTransfer
+      file: ./src/erp.ts
