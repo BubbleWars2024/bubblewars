@@ -25,6 +25,15 @@ if (
 }
 
 
+// Get user session.
+export async function loadUser() {
+    const login = await accessBackend('user/login', window.Telegram.WebApp.initData);
+    console.log('login', login);
+    gameState.userData = login;
+    return login;
+}
+
+
 // Init.
 document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([

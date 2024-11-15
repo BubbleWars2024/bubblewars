@@ -24,7 +24,7 @@ export const handler = async (event) => {
 
 
     // Validate x-api-key header.
-    if (event.headers['x-api-key'] != '7') {
+    if (event.headers['x-api-key'] != process.env.X_API_KEY) {
         return createResponse(403, 'Forbidden', 'handler', 'Invalid or missing x-api-key header');
     }
 
