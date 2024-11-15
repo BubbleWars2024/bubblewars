@@ -46,9 +46,23 @@ export const handler = async (event) => {
     // Execute specific user operation.
     try {
         switch (path) {
+            // Play.
+            case '/play/attack':
+                return await attack(data);
+            case '/play/eat':
+                return await eat(data);
+            case '/play/score':
+                return await eat(data);
+
+            // Referrals.
+            case '/referral/create':
+                return await create(data);
+
             // User.
             case '/user/login':
                 return await login(data);
+            case '/user/read':
+                return await read(data);
 
             // Default.
             default:
