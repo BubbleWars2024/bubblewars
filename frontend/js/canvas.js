@@ -265,8 +265,9 @@ function updatePlayerDirection() {
 function gameLoop(timestamp) {
     if (!lastTimestamp) lastTimestamp = timestamp;
 
-    // Calculate deltaTime in seconds
-    const deltaTime = (timestamp - lastTimestamp) / 1000;
+    // Calculate deltaTime in seconds and cap it
+    let deltaTime = (timestamp - lastTimestamp) / 1000;
+    deltaTime = Math.min(deltaTime, 0.05); // Cap to prevent large jumps (50ms)
     lastTimestamp = timestamp;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -283,6 +284,7 @@ function gameLoop(timestamp) {
 
     requestAnimationFrame(gameLoop);
 }
+
 
 
 // Event listeners
