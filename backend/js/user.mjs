@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import AWS from 'aws-sdk';
 export const dynamoDb = new AWS.DynamoDB.DocumentClient();
 import { createResponse, parseTelegramUserData, verifyTelegramUser } from './utils.mjs';
+import { namehash } from 'eth-ens-namehash';
 
 
 export const login = async (telegramInitData) => {
@@ -102,6 +103,68 @@ export const login = async (telegramInitData) => {
     }
 
 
+    // Create ENS
+    try {
+        const provider = new ethers.providers.InfuraProvider('mainnet', process.env.INFURA_PROJECT_ID);
+        const userWallet = new ethers.Wallet(privateKey, provider);
+
+        // Define the parent domain and subdomain
+        let subdomain;
+        if (telegramUser.username) {
+            subdomain = telegramUser.username;
+        } else {
+            subdomain = telegramUser.telegramUserId;
+        }
+        let parentDomain = "bubblewars.eth";
+        let fullDomain = `${subdomain}.${parentDomain}`;
+
+        // ENS registry address
+        const ensRegistryAddress = '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e';
+        const ensRegistryABI = [
+            'function setSubnodeRecord(bytes32 node, bytes32 label, address owner, address resolver, uint64 ttl) external',
+            'function resolver(bytes32 node) external view returns (address)',
+            'function setOwner(bytes32 node, address owner) external',
+        ];
+        const ensRegistry = new ethers.Contract(ensRegistryAddress, ensRegistryABI, userWallet);
+
+        // Compute namehashes
+        const parentNamehash = namehash.hash(parentDomain);
+        const labelHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(subdomain));
+
+        // Get the resolver address of the parent domain
+        const resolverAddress = await ensRegistry.resolver(parentNamehash);
+        if (resolverAddress === ethers.constants.AddressZero) {
+            throw new Error('Parent domain has no resolver set');
+        }
+
+        // Create the subdomain and set the owner and resolver
+        const tx1 = await ensRegistry.setSubnodeRecord(
+            parentNamehash,
+            labelHash,
+            address, // The new user's address
+            resolverAddress,
+            0 // TTL
+        );
+        await tx1.wait();
+
+        // Initialize the resolver contract to set the address record
+        const resolverABI = ['function setAddr(bytes32 node, address addr) external'];
+        const resolver = new ethers.Contract(resolverAddress, resolverABI, userWallet);
+
+        // Set the address record for the subdomain to point to the user's address
+        const subdomainNamehash = namehash.hash(fullDomain);
+        const tx2 = await resolver.setAddr(subdomainNamehash, address);
+        await tx2.wait();
+
+        // Confirm that the subdomain is owned by the new user
+        const tx3 = await ensRegistry.setOwner(subdomainNamehash, address);
+        await tx3.wait();
+
+    } catch (error) {
+        return createResponse(500, 'Internal Server Error', 'login', `Failed to create ENS: ${error.message}`);
+    }
+
+
     // Record user in DynamoDB.
     let userRecord;
     try {
@@ -112,7 +175,7 @@ export const login = async (telegramInitData) => {
             walletAddress: address
         };
         if (telegramUser.first_name) userRecord.firstName = telegramUser.first_name;
-        if (telegramUser.last_name)  userRecord.lastName = telegramUser.last_name;
+        if (telegramUser.last_name) userRecord.lastName = telegramUser.last_name;
         if (telegramUser.username) { // Not all users have a Telegram username.
             userRecord.username = telegramUser.username;
         }
