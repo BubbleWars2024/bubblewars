@@ -15,8 +15,7 @@ interface IERP {
     struct ReferralProgram {
         mapping(address => uint256) totalReferrals;
         mapping(address => address) referrals;
-        address[] beforeHooks;
-        address[] afterHooks;
+        address[] hooks;
     }
 
     function getTotalReferrals(
@@ -31,8 +30,7 @@ interface IERP {
 
     function newReferralProgram(
         address to,
-        address[] memory beforeHooks,
-        address[] memory afterHooks
+        address[] memory hooks
     ) external returns (uint256 programId);
 
     function setReferral(uint256 programId, address referral) external;

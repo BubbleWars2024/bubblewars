@@ -32,14 +32,12 @@ contract ERP is IERP, ERC721 {
 
     function newReferralProgram(
         address to,
-        address[] memory beforeHooks,
-        address[] memory afterHooks
+        address[] memory hooks
     ) external override returns (uint256 programId) {
         programId = _totalPrograms;
         _totalPrograms++;
 
-        _programs[programId].beforeHooks = beforeHooks;
-        _programs[programId].afterHooks = afterHooks;
+        _programs[programId].hooks = hooks;
 
         _safeMint(to, programId);
 
@@ -73,8 +71,8 @@ contract ERP is IERP, ERC721 {
         address account,
         address referral
     ) private {
-        for (uint256 i = 0; i < _programs[programId].beforeHooks.length; i++) {
-            IERPHook(_programs[programId].beforeHooks[i]).beforeReferral(
+        for (uint256 i = 0; i < _programs[programId].hooks.length; i++) {
+            IERPHook(_programs[programId].hooks[i]).beforeReferral(
                 programId,
                 account,
                 referral
@@ -87,8 +85,8 @@ contract ERP is IERP, ERC721 {
         address account,
         address referral
     ) private {
-        for (uint256 i = 0; i < _programs[programId].afterHooks.length; i++) {
-            IERPHook(_programs[programId].afterHooks[i]).afterReferral(
+        for (uint256 i = 0; i < _programs[programId].hooks.length; i++) {
+            IERPHook(_programs[programId].hooks[i]).afterReferral(
                 programId,
                 account,
                 referral
