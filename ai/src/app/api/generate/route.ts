@@ -1,6 +1,9 @@
 // src/app/api/generate/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import main from '../../lib/index';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 export async function GET(req: NextRequest) {
     try {

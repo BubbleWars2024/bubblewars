@@ -1,11 +1,13 @@
 // src/app/lib/index.ts
 import { Request, Response, route } from './httpSupport';
 import OpenAI from 'openai/index.mjs';
+import { TappdClient } from '@phala/dstack-sdk';
 
 async function GET(req: Request): Promise<Response> {
     let result = { message: '' };
     const secrets = req.secret || {};
     const queries = req.queries;
+    const tappdClient = new TappdClient();
 
     // Retrieve OpenAI API key from secrets
     const openaiApiKey = secrets.openaiApiKey ? (secrets.openaiApiKey as string) : '';
@@ -14,6 +16,15 @@ async function GET(req: Request): Promise<Response> {
             status: 500,
             headers: { 'Content-Type': 'application/json' },
         });
+    }
+
+    // Generate Remote Attestation
+    try {
+        const raQuote = await tappdClient.tdxQuote('input');
+        console.log('RA Quote:', raQuote);
+
+    } catch (error) {
+        console.error('Error generating RA:', error);
     }
 
     const openai = new OpenAI({ apiKey: openaiApiKey });
