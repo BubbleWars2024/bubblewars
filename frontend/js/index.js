@@ -1,4 +1,5 @@
 import { initGame } from './canvas.js';
+import { accessBackend } from './utils.js';
 
 
 // Enable warn user before exit.
@@ -29,7 +30,6 @@ if (
 export async function loadUser() {
     const login = await accessBackend('user/login', window.Telegram.WebApp.initData);
     console.log('login', login);
-    gameState.userData = login;
     return login;
 }
 
@@ -38,5 +38,6 @@ export async function loadUser() {
 document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([
         initGame(),
+        loadUser()
     ]);
 });

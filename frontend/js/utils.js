@@ -3,7 +3,7 @@ export async function accessBackend(path, data) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'x-api-key': '7'
+            'x-api-key': '42069'
         },
         body: JSON.stringify({
             data
