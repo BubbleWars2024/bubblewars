@@ -86,13 +86,22 @@ function drawPlayer() {
 // Update player position based on velocity and delta time
 function updatePlayer(deltaTime) {
     const distance = baseSpeed * deltaTime;
+
     player.x += player.dx * distance;
     player.y += player.dy * distance;
 
-    // Keep the player within world boundaries
+    // Apply easing near borders
+    const borderBuffer = 50; // Distance from the edge to start easing
+    if (player.x < player.radius + borderBuffer) player.dx *= 0.9;
+    if (player.x > worldWidth - player.radius - borderBuffer) player.dx *= 0.9;
+    if (player.y < player.radius + borderBuffer) player.dy *= 0.9;
+    if (player.y > worldHeight - player.radius - borderBuffer) player.dy *= 0.9;
+
+    // Keep the player strictly within world boundaries
     player.x = Math.max(player.radius, Math.min(player.x, worldWidth - player.radius));
     player.y = Math.max(player.radius, Math.min(player.y, worldHeight - player.radius));
 }
+
 
 
 //// BUBBLES ////
