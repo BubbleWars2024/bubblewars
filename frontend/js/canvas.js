@@ -36,7 +36,10 @@ const player = {
 
 
 let lastTimestamp = 0;
-const fixedFrameTime = 16.67; // Normalize to a standard frame time (60 FPS)
+const baseSpeed = 400;
+
+
+const keysPressed = {};
 
 
 //// BUBBLES ////
@@ -82,15 +85,13 @@ function drawPlayer() {
 
 // Update player position based on velocity and delta time
 function updatePlayer(deltaTime) {
-    const frameFactor = deltaTime / fixedFrameTime;
-    player.x += player.dx * frameFactor * player.speed;
-    player.y += player.dy * frameFactor * player.speed;
+    const distance = baseSpeed * deltaTime;
+    player.x += player.dx * distance;
+    player.y += player.dy * distance;
 
     // Keep the player within world boundaries
-    if (player.x + player.radius > worldWidth) player.x = worldWidth - player.radius;
-    if (player.x - player.radius < 0) player.x = player.radius;
-    if (player.y + player.radius > worldHeight) player.y = worldHeight - player.radius;
-    if (player.y - player.radius < 0) player.y = player.radius;
+    player.x = Math.max(player.radius, Math.min(player.x, worldWidth - player.radius));
+    player.y = Math.max(player.radius, Math.min(player.y, worldHeight - player.radius));
 }
 
 
@@ -228,41 +229,44 @@ function handleTouchEnd() {
 
 // Handle keyboard controls for desktop
 function handleKeyDown(event) {
-    switch (event.key) {
-        case 'ArrowUp':
-            player.dy = -player.speed;
-            break;
-        case 'ArrowDown':
-            player.dy = player.speed;
-            break;
-        case 'ArrowLeft':
-            player.dx = -player.speed;
-            break;
-        case 'ArrowRight':
-            player.dx = player.speed;
-            break;
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+        keysPressed[event.key] = true;
+        updatePlayerDirection();
+        event.preventDefault(); // Prevent default scrolling behavior
     }
 }
 
 
 function handleKeyUp(event) {
-    switch (event.key) {
-        case 'ArrowUp':
-        case 'ArrowDown':
-            player.dy = 0;
-            break;
-        case 'ArrowLeft':
-        case 'ArrowRight':
-            player.dx = 0;
-            break;
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+        delete keysPressed[event.key];
+        updatePlayerDirection();
+        event.preventDefault(); // Prevent default scrolling behavior
     }
 }
 
 
-// Main game loop with adjusted delta time
+function updatePlayerDirection() {
+    // Reset velocity
+    player.dx = 0;
+    player.dy = 0;
+
+    if (keysPressed['ArrowUp']) player.dy = -1;
+    if (keysPressed['ArrowDown']) player.dy = 1;
+    if (keysPressed['ArrowLeft']) player.dx = -1;
+    if (keysPressed['ArrowRight']) player.dx = 1;
+}
+
+
+//// GAME LOOP ////
+
+
+// Main game loop with adjusted delta time calculation
 function gameLoop(timestamp) {
     if (!lastTimestamp) lastTimestamp = timestamp;
-    const deltaTime = Math.min(timestamp - lastTimestamp, 100); // Cap deltaTime to prevent extreme changes
+
+    // Calculate deltaTime in seconds
+    const deltaTime = (timestamp - lastTimestamp) / 1000;
     lastTimestamp = timestamp;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
