@@ -1,4 +1,6 @@
 import { initGame } from './canvas.js';
+import { state } from './state.js';
+import { initHeader } from './header.js';
 import { accessBackend } from './utils.js';
 
 
@@ -30,6 +32,10 @@ if (
 export async function loadUser() {
     const login = await accessBackend('user/login', window.Telegram.WebApp.initData);
     console.log('login', login);
+    state.user = { ...login };
+
+    await initHeader();
+
     return login;
 }
 
@@ -37,7 +43,7 @@ export async function loadUser() {
 // Init.
 document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([
-        initGame(),
-        loadUser()
+        loadUser(),
+        initGame()
     ]);
 });

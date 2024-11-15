@@ -2,11 +2,16 @@
 
 
 # Define variables.
-LAMBDA_FUNCTION_NAME="bubblewars-backend"
+LAMBDA_FUNCTION_NAME="bubblewars-backend-2"
 ZIP_FILE="lambda.zip"
 
 
 echo "Starting deployment process..."
+
+
+# Update node modules.
+echo "Updating node modules..."
+npm install
 
 
 # Zip the Lambda function code.

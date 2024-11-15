@@ -1,5 +1,5 @@
 export async function accessBackend(path, data) {
-    const response = await fetch(`https://ql3qasxkua6jg2qpalpq74n6xi0mqftx.lambda-url.ap-southeast-1.on.aws/${path}`, {
+    const response = await fetch(`https://rfrvdta2dk67rfuxbqxxxybcai0nrdzk.lambda-url.ap-southeast-1.on.aws/${path}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
