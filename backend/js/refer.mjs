@@ -127,7 +127,7 @@ export const createReferral = async (data) => {
     }
 
 
-    if(!referralAddress) {
+    if (!referralAddress) {
         // Create EOA for referree.
         let wallet, privateKey, address;
         try {
@@ -194,9 +194,9 @@ export const createReferral = async (data) => {
             to: userWallet.address,
             value: ethers.parseEther("0.00001")
         });
-          
+
         await tx.wait();
-    } catch(error) {
+    } catch (error) {
         // Dont throw
     }
 
@@ -239,6 +239,10 @@ export const getTotalReferrals = async (data) => {
     try {
         referSource = data.referSource;
         console.log('referSource', referSource);
+        if (!referSource) {
+            return createResponse(200, 'OK', 'getTotalReferrals', 'Referral created', { totalReferrals: 0 });
+        }
+
     } catch (error) {
         return createResponse(400, 'Bad Request', 'getTotalReferrals', 'Failed to parse request data: ' + error.message);
     }

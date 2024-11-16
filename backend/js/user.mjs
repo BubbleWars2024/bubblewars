@@ -2,7 +2,7 @@ import AWS from 'aws-sdk';
 export const dynamoDb = new AWS.DynamoDB.DocumentClient();
 import crypto from 'crypto';
 import { ethers } from 'ethers';
-import { parseAbi } from 'viem';
+// import { parseAbi } from 'viem';
 
 import { createResponse, parseTelegramUserData, verifyTelegramUser } from './utils.mjs';
 import { getTotalReferrals } from './refer.mjs';
@@ -146,7 +146,7 @@ export const login = async (telegramInitData) => {
         let label;
         if (telegramUser.username) {
             // label = normalize(telegramUser.username);
-            label = telegramUser.username.toLowerCase() + 'w';
+            label = telegramUser.username.toLowerCase();
         } else {
             // label = normalize(telegramUserId.toString());
             label = telegramUserId.toString().toLowerCase();
@@ -162,19 +162,19 @@ export const login = async (telegramInitData) => {
         const receipt = await tx.wait();
         console.log(`Transaction mined in block ${receipt.blockNumber}`);
 
-        const l2ReverseResolver = "0xa12159e5131b1eEf6B4857EEE3e1954744b5033A";
-        const l2ReverseResolverAbi = parseAbi([
-            'function node(address) view returns (bytes32)',
-            'function name(bytes32) view returns (string)',
-            'function setName(string) external'
-        ]);
+        // const l2ReverseResolver = "0xa12159e5131b1eEf6B4857EEE3e1954744b5033A";
+        // const l2ReverseResolverAbi = parseAbi([
+        //     'function node(address) view returns (bytes32)',
+        //     'function name(bytes32) view returns (string)',
+        //     'function setName(string) external'
+        // ]);
 
-        const l2ReverseResolverContract = new ethers.Contract(l2ReverseResolver, l2ReverseResolverAbi, address);
-        const tx2 = await l2ReverseResolverContract.setName(`${label}.bubblewars.eth`, {
-            gasLimit: 500000,
-        });
+        // const l2ReverseResolverContract = new ethers.Contract(l2ReverseResolver, l2ReverseResolverAbi, address);
+        // const tx2 = await l2ReverseResolverContract.setName(`${label}.bubblewars.eth`, {
+        //     gasLimit: 500000,
+        // });
 
-        console.log(`Transaction sent: ${tx2.hash}`);
+        // console.log(`Transaction sent: ${tx2.hash}`);
 
 
     } catch (error) {
