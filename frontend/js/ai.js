@@ -1,24 +1,25 @@
-import fs from 'fs';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-
-const EC2_AI_URL = 'http://52.221.193.177:3000/api/generate';
-const openAiApiKey = process.env.OPENAI_API_KEY;
-
 /**
  * Function to fetch the leaderboard data from the AI server
  */
 async function fetchLeaderboard() {
     try {
-        const response = await fetch(`${EC2_AI_URL}?chatQuery=Fetch+current+leaderboard`);
+        const response = await fetch("https://swfvcqmcfmsbqcn4y6m4blu4rq0rujfh.lambda-url.ap-southeast-1.on.aws/", {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+        });
+        console.log('DEBUG', response.status);
 
-        if (response.status === 200 && response.data.message) {
-            console.log('Fetched leaderboard successfully:', response.data.message);
-            return response.data.message;
+        if (!response.ok) {
+            console.error('Failed to fetch leaderboard:', response.status);
+            return null;
+        }
+
+        const data = await response.json();
+        if (data.message) {
+            console.log('Fetched leaderboard successfully:', data.message);
+            return data.message;
         } else {
-            console.error('Failed to fetch leaderboard:', response.data);
+            console.error('No message found in response:', data);
             return null;
         }
     } catch (error) {
@@ -28,57 +29,26 @@ async function fetchLeaderboard() {
 }
 
 /**
- * Function to convert text to speech using OpenAI's text-to-speech API
+ * Function to slide the text down the screen
  */
-async function convertTextToSpeech(text) {
-    try {
-        const ttsResponse = await fetch(
-            'https://api.openai.com/v1/audio/transcriptions',
-            {
-                model: 'whisper-1',
-                text: text,
-                language: 'en'
-            },
-            {
-                headers: {
-                    'Authorization': `Bearer ${openAiApiKey}`,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
+function slideText(text) {
+    const textElement = document.createElement('div');
+    textElement.className = 'sliding-text';
+    textElement.textContent = text;
+    document.body.appendChild(textElement);
 
-        const audioBuffer = Buffer.from(ttsResponse.data.audioContent, 'base64');
-        return audioBuffer;
-    } catch (error) {
-        console.error('Error converting text to speech:', error.message);
-        return null;
-    }
+    // Remove the element after the animation completes
+    textElement.addEventListener('animationend', () => {
+        textElement.remove();
+    });
 }
 
 /**
- * Function to save the audio buffer to a file
+ * Main function to fetch and display the leaderboard text
  */
-function saveAudioToFile(buffer, fileName = 'leaderboard_response.ogg') {
-    try {
-        fs.writeFileSync(fileName, buffer);
-        console.log(`Audio file saved as ${fileName}`);
-    } catch (error) {
-        console.error('Error saving audio file:', error.message);
-    }
-}
-
-/**
- * Main function to fetch the leaderboard and convert it to speech
- */
-async function main() {
+export async function runLeaderboardAI() {
     const leaderboardText = await fetchLeaderboard();
-
     if (leaderboardText) {
-        const audioBuffer = await convertTextToSpeech(leaderboardText);
-        if (audioBuffer) {
-            saveAudioToFile(audioBuffer);
-        }
+        slideText(leaderboardText);
     }
 }
-
-main();

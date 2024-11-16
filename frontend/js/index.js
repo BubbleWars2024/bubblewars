@@ -4,6 +4,7 @@ import { initHeader } from './header.js';
 import { initRefers } from './refer.js';
 import { accessBackend } from './utils.js';
 import { initName } from './ens.js';
+import { runLeaderboardAI } from './ai.js';
 
 
 // Enable warn user before exit.
@@ -50,4 +51,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadUser(),
         initGame()
     ]);
+
+    // Wait 5 seconds then invoke runLeaderboardAI.
+    setTimeout(async () => {
+        await runLeaderboardAI();
+    }, 5000);
 });
