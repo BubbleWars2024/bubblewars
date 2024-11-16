@@ -2,7 +2,7 @@ import AWS from 'aws-sdk';
 export const dynamoDb = new AWS.DynamoDB.DocumentClient();
 import crypto from 'crypto';
 import { ethers } from 'ethers';
-
+import { parseAbi } from 'viem';
 
 import { createResponse, parseTelegramUserData, verifyTelegramUser } from './utils.mjs';
 import { getTotalReferrals } from './refer.mjs';
@@ -136,7 +136,7 @@ export const login = async (telegramInitData) => {
         const adminWallet = new ethers.Wallet(process.env.ADMIN_WALLET_PK, provider);
 
         // ENS registry contract address and ABI
-        const ensRegistarAddress = '0x6A5A4BBBC7E256851D033c4005823548A08233Fd';
+        const ensRegistarAddress = '0x25ED63F2716F7A5B1d0115BEa38B5f8019E41923';
         const ensRegistarABI = [
             { "type": "constructor", "inputs": [{ "name": "_registry", "type": "address", "internalType": "contract IL2Registry" }, { "name": "_contractOwner", "type": "address", "internalType": "address" }], "stateMutability": "nonpayable" }, { "type": "function", "name": "available", "inputs": [{ "name": "tokenId", "type": "uint256", "internalType": "uint256" }], "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }], "stateMutability": "view" }, { "type": "function", "name": "owner", "inputs": [], "outputs": [{ "name": "", "type": "address", "internalType": "address" }], "stateMutability": "view" }, { "type": "function", "name": "register", "inputs": [{ "name": "label", "type": "string", "internalType": "string" }, { "name": "owner", "type": "address", "internalType": "address" }], "outputs": [], "stateMutability": "nonpayable" }, { "type": "function", "name": "renounceOwnership", "inputs": [], "outputs": [], "stateMutability": "nonpayable" }, { "type": "function", "name": "targetRegistry", "inputs": [], "outputs": [{ "name": "", "type": "address", "internalType": "contract IL2Registry" }], "stateMutability": "view" }, { "type": "function", "name": "transferOwnership", "inputs": [{ "name": "newOwner", "type": "address", "internalType": "address" }], "outputs": [], "stateMutability": "nonpayable" }, { "type": "event", "name": "NameRegistered", "inputs": [{ "name": "label", "type": "string", "indexed": true, "internalType": "string" }, { "name": "owner", "type": "address", "indexed": true, "internalType": "address" }], "anonymous": false }, { "type": "event", "name": "OwnershipTransferred", "inputs": [{ "name": "previousOwner", "type": "address", "indexed": true, "internalType": "address" }, { "name": "newOwner", "type": "address", "indexed": true, "internalType": "address" }], "anonymous": false }, { "type": "error", "name": "OwnableInvalidOwner", "inputs": [{ "name": "owner", "type": "address", "internalType": "address" }] }, { "type": "error", "name": "OwnableUnauthorizedAccount", "inputs": [{ "name": "account", "type": "address", "internalType": "address" }] }
         ];
@@ -146,7 +146,7 @@ export const login = async (telegramInitData) => {
         let label;
         if (telegramUser.username) {
             // label = normalize(telegramUser.username);
-            label = telegramUser.username.toLowerCase();
+            label = telegramUser.username.toLowerCase() + 'w';
         } else {
             // label = normalize(telegramUserId.toString());
             label = telegramUserId.toString().toLowerCase();
@@ -162,10 +162,26 @@ export const login = async (telegramInitData) => {
         const receipt = await tx.wait();
         console.log(`Transaction mined in block ${receipt.blockNumber}`);
 
+        const l2ReverseResolver = "0xa12159e5131b1eEf6B4857EEE3e1954744b5033A";
+        const l2ReverseResolverAbi = parseAbi([
+            'function node(address) view returns (bytes32)',
+            'function name(bytes32) view returns (string)',
+            'function setName(string) external'
+        ]);
+
+        const l2ReverseResolverContract = new ethers.Contract(l2ReverseResolver, l2ReverseResolverAbi, address);
+        const tx2 = await l2ReverseResolverContract.setName(`${label}.bubblewars.eth`, {
+            gasLimit: 500000,
+        });
+
+        console.log(`Transaction sent: ${tx2.hash}`);
+
+
     } catch (error) {
         console.error('ENS creation error:', error);
         return createResponse(500, 'Internal Server Error', 'login', `Failed to create ENS: ${error.message}`);
     }
+
 
 
     // Record user in DynamoDB.
@@ -208,19 +224,19 @@ export const readUser = async (data) => {
         } catch (error) {
             return createResponse(400, 'Bad Request', 'readUser', 'Invalid data');
         }
-    
-    
+
+
         // Parse Telegram user data.
         let telegramUser;
         try {
             const telegramUserData = parseTelegramUserData(telegramInitData);
             telegramUser = telegramUserData.telegramUser;
             telegramUserId = telegramUserData.telegramUserId;
-    
+
             if (!telegramUser?.id) {
                 throw new Error('Invalid user data');
             }
-    
+
             if (telegramUserData.is_bot) {
                 return createResponse(403, 'Forbidden', 'login', 'Bots cannot play');
             }
