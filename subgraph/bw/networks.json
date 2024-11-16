@@ -1,0 +1,8 @@
+{
+  "base-sepolia": {
+    "BubbleWars": {
+      "address": "0x6990b67c9cb437CaCb2a0349463bad27FA00736f",
+      "startBlock": 17996795
+    }
+  }
+}
