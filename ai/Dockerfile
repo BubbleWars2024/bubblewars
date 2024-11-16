@@ -11,7 +11,7 @@ COPY package.json yarn.lock ./
 RUN yarn
 
 COPY . .
-
+COPY .env .env
 # Build the Next.js project
 RUN yarn build
 

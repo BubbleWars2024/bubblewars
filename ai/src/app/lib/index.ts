@@ -3,6 +3,8 @@ import OpenAI from 'openai/index.mjs';
 import { TappdClient } from '@phala/dstack-sdk';
 import { execSync } from 'child_process';
 import { fetchLeaderboard } from './blockchain';
+import dotenv from 'dotenv';
+dotenv.config();
 
 async function GET(req: Request): Promise<Response> {
     let result = { message: '' };
@@ -10,7 +12,7 @@ async function GET(req: Request): Promise<Response> {
     const queries = req.queries;
     const tappdClient = new TappdClient();
 
-    const openaiApiKey = secrets.openaiApiKey ? (secrets.openaiApiKey as string) : '';
+    const openaiApiKey = process.env.OPENAI_API_KEY;
     if (!openaiApiKey) {
         return new Response(JSON.stringify({ error: 'OpenAI API key not found in secrets' }), {
             status: 500,
