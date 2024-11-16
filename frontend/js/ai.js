@@ -32,7 +32,7 @@ async function fetchLeaderboard() {
  */
 async function convertTextToSpeech(text) {
     try {
-        const ttsResponse = await axios.post(
+        const ttsResponse = await fetch(
             'https://api.openai.com/v1/audio/transcriptions',
             {
                 model: 'whisper-1',
