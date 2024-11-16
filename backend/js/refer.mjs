@@ -272,7 +272,7 @@ export const getTotalReferrals = async (data) => {
     let totalReferrals;
     try {
         let totalReferrals = await referContract.getTotalReferrals(
-            0,
+            2,
             referSource
         );
         console.log('totalReferrals', totalReferrals);
