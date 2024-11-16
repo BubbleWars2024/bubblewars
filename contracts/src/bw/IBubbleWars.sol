@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-interface IBW {
+interface IBubbleWars {
     event NewReferral(address indexed account, address indexed referral);
 
     event RaidStarted(

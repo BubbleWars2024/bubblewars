@@ -3,18 +3,17 @@ pragma solidity ^0.8.27;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-import {IRouterClient} from "@chainlink-ccip/contracts/src/v0.8/ccip/interfaces/IRouterClient.sol";
-import {OwnerIsCreator} from "@chainlink-ccip/contracts/src/v0.8/shared/access/OwnerIsCreator.sol";
-import {Client} from "@chainlink-ccip/contracts/src/v0.8/ccip/libraries/Client.sol";
-import {CCIPReceiver} from "@chainlink-ccip/contracts/src/v0.8/ccip/applications/CCIPReceiver.sol";
-
 import {IEntropyConsumer} from "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
 import {IEntropy} from "@pythnetwork/entropy-sdk-solidity/IEntropy.sol";
 
-import {IBW} from "./IBW.sol";
+import {IERPHook} from "../erp/IERPHook.sol";
+import {IERP} from "../erp/IERP.sol";
 
-contract BW is CCIPReceiver, IEntropyConsumer, IBW, Ownable {
-    address public ccipErpHook; 
+import {IBubbleWars} from "./IBubbleWars.sol";
+
+contract BubbleWars is IEntropyConsumer, IERPHook, IBubbleWars, Ownable {
+    address public immutable erp;
+    uint256 public immutable erpProgramId;
 
     address public immutable entropy;
 
@@ -31,12 +30,19 @@ contract BW is CCIPReceiver, IEntropyConsumer, IBW, Ownable {
     uint256 public constant RAID_MULTIPLIER_MAX = 150;
 
     constructor(
-        address ccipHook,
-        address ccipRouter,
+        address ethReferralProtocol,
         address pythEntropy,
         address owner
-    ) CCIPReceiver(ccipRouter) Ownable(owner) {
-        ccipErpHook = ccipHook;
+    ) Ownable(owner) {
+        erp = ethReferralProtocol;
+
+        address[] memory hooks = new address[](1);
+        hooks[0] = address(this);
+        erpProgramId = IERP(ethReferralProtocol).newReferralProgram(
+            address(this),
+            hooks
+        );
+
         entropy = pythEntropy;
     }
 
@@ -56,26 +62,29 @@ contract BW is CCIPReceiver, IEntropyConsumer, IBW, Ownable {
         );
     }
 
-    function _ccipReceive(
-        Client.Any2EVMMessage memory any2EvmMessage
-    ) internal override {
-        if(abi.decode(any2EvmMessage.sender, (address)) != ccipErpHook) {
+    function beforeReferral(
+        uint256 programId,
+        address account,
+        address referral
+    ) external {}
+
+    function afterReferral(
+        uint256 programId,
+        address account,
+        address referral
+    ) external {
+        if (msg.sender != erp) {
             revert();
         }
 
-        (address account, address referral) = abi.decode(
-            any2EvmMessage.data,
-            (address, address)
-        );
+        if (programId != erpProgramId) {
+            revert();
+        }
 
         _bubbles[account].points += ACCOUNT_POINTS;
         _bubbles[referral].points += REFERRAL_POINTS;
 
         emit NewReferral(account, referral);
-    }
-
-    function setCcipErpHook(address hook) external onlyOwner {
-        ccipErpHook = hook;
     }
 
     function setPoints(address bubble, uint256 value) external onlyOwner {
