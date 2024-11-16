@@ -1,0 +1,14 @@
+type Bubble @entity {
+    id: Bytes!
+    points: BigInt!
+    lastRaid: BigInt!
+}
+
+type Raid @entity {
+    id: Bytes!
+    raider: Bytes!
+    defender: Bytes!
+    loser: Bytes!
+    damage: BigInt!
+    ended: Boolean!
+}
