@@ -29,6 +29,13 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+
+# Install Python and required packages
+RUN apk add --no-cache python3 py3-pip
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+
 # You only need to copy next.config.js if you are NOT using the default configuration
 COPY --from=build /app/next.config.mjs ./
 COPY --from=build /app/package.json ./package.json

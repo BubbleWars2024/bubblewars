@@ -1,4 +1,3 @@
-// src/app/api/generate/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import main from '../../lib/index';
 import dotenv from 'dotenv';
@@ -8,18 +7,19 @@ dotenv.config();
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
-        const chatQuery = searchParams.get('chatQuery') || 'Hello, who are you?';
+        const chatQuery = searchParams.get('chatQuery') || '';
+        const useLangchain = searchParams.get('langchain') === 'true';
+        const gameContext = searchParams.get('gameContext') || '';
 
         const requestPayload = {
             method: 'GET',
             path: '/api/generate',
             queries: {
                 chatQuery: [chatQuery],
+                langchain: [useLangchain.toString()],
+                gameContext: [gameContext],
             },
             headers: {},
-            secret: {
-                openaiApiKey: process.env.OPENAI_API_KEY,
-            },
         };
 
         const response = await main(JSON.stringify(requestPayload));
