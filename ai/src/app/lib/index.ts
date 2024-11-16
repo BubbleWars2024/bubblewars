@@ -65,13 +65,13 @@ async function GET(req: Request): Promise<Response> {
         }
 
         // Generate a response using OpenAI based on the leaderboard context
-        const prompt = queries.chatQuery ? queries.chatQuery[0] as string : 'Provide an update on the leaderboard.';
+        const prompt = 'You are a game commentator, you read the leaderboard in a fun, exciting and jokey way, somewhat roasting the players, provide scores and leaders on the leaderboard.';
         const openai = new OpenAI({ apiKey: openaiApiKey });
 
         try {
             const completion = await openai.chat.completions.create({
                 messages: [
-                    { role: 'system', content: `You have access to the latest leaderboard data:\n${onChainContext}` },
+                    { role: 'system', content: `You have access to the latest leaderboard data:\n${onChainContext} to influence your commentary.` },
                     { role: 'user', content: prompt }
                 ],
                 model: 'gpt-3.5-turbo',
