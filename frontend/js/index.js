@@ -55,5 +55,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Wait 5 seconds then invoke runLeaderboardAI.
     setTimeout(async () => {
         await runLeaderboardAI();
-    }, 5000);
+    }, 2500);
 });
