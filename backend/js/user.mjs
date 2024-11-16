@@ -6,8 +6,8 @@ import { ethers } from 'ethers';
 
 import { createResponse, parseTelegramUserData, verifyTelegramUser } from './utils.mjs';
 import { getTotalReferrals } from './refer.mjs';
-import { readENS } from './ens.mjs';
-import { normalize, labelhash, namehash } from 'viem/ens';
+import { createCoinbaseWalletSDK } from '@coinbase/wallet-sdk';
+import { normalize } from 'viem/ens';
 
 
 export const login = async (telegramInitData) => {
@@ -226,7 +226,7 @@ export const readUser = async (telegramUserId) => {
     } catch (error) {
         return createResponse(500, 'Internal Server Error', 'readUser', `Failed to read user referrals: ${error.message}`);
     }
-    
+
     // Read user's ENS.
     // TODO
     try {
