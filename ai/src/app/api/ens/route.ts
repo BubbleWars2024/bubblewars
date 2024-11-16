@@ -1,34 +1,69 @@
+// This is a hacky solution, and not recommended to read from a hardcoded L2 address, but fine for a hackathon
+import { Hex, createPublicClient, http, namehash, parseAbi } from 'viem'
+import { baseSepolia, sepolia } from 'viem/chains'
 import { NextRequest, NextResponse } from 'next/server';
-import { createPublicClient, http } from 'viem';
-import { sepolia } from 'wagmi/chains';
-import { getEnsName } from 'viem/ens';
 
-const client = createPublicClient({
+const evmChainIdToCoinType = (chainId: number) => {
+    return (0x80000000 | chainId) >>> 0
+}
+
+const getReverseNamespace = (chainId: number) =>
+    `${evmChainIdToCoinType(chainId).toString(16)}.reverse`
+
+const getReverseNode = (address: Hex, chainId: number) => {
+    const reverseNamespace = getReverseNamespace(chainId)
+    return `${address.toLowerCase().slice(2)}.${reverseNamespace}`
+}
+
+const getReverseNodeHash = (address: Hex, chainId: number) => {
+    const reverseNode = getReverseNode(address, chainId)
+    return namehash(reverseNode)
+}
+
+const l1Client = createPublicClient({
     chain: sepolia,
-    transport: http(),
-});
+    transport: http('https://sepolia.drpc.org'),
+})
+
+const l2Client = createPublicClient({
+    chain: baseSepolia,
+    transport: http('https://base-sepolia.drpc.org'),
+})
+
+// https://github.com/ensdomains/ens-contracts/blob/feature/simplify-reverse-resolver/deployments/base/L2ReverseResolver.json
+const l2ReverseResolverAbi = parseAbi([
+    'function node(address) view returns (bytes32)',
+    'function name(bytes32) view returns (string)',
+])
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
-    const address = searchParams.get('address');
+    const address = searchParams.get('address') as Hex;
 
     // Validate if the address parameter is provided
     if (!address) {
         return NextResponse.json({ error: 'Address parameter is required' }, { status: 400 });
     }
 
-    try {
-        // Fetch ENS name using viem
-        const ensName = await getEnsName(client, { address: address as `0x${string}` });
+    const chainId = baseSepolia.id
+    const node = getReverseNodeHash(address, chainId)
+    const l2ReverseResolver = '0xa12159e5131b1eEf6B4857EEE3e1954744b5033A' as Hex
 
-        if (!ensName) {
-            return NextResponse.json({ message: 'ENS name not found' }, { status: 404 });
-        }
+    const reverseName = await l2Client.readContract({
+        address: l2ReverseResolver,
+        abi: l2ReverseResolverAbi,
+        functionName: 'name',
+        args: [node],
+    })
 
-        // Return the ENS name
-        return NextResponse.json({ name: ensName }, { status: 200 });
-    } catch (error) {
-        console.error('Error fetching ENS name:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    const forwardAddr = await l1Client.getEnsAddress({
+        name: reverseName,
+        coinType: evmChainIdToCoinType(chainId),
+    })
+
+    if (forwardAddr?.toLowerCase() === address.toLowerCase()) {
+        return reverseName
     }
+
+    return null
 }
