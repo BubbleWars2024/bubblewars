@@ -1,4 +1,4 @@
-import { login } from './js/user.mjs';
+import { login, readUser } from './js/user.mjs';
 import { createResponse } from './js/utils.mjs';
 
 
@@ -49,20 +49,18 @@ export const handler = async (event) => {
             // Play.
             case '/play/attack':
                 return await attack(data);
-            case '/play/eat':
-                return await eat(data);
-            case '/play/score':
-                return await eat(data);
 
             // Referrals.
             case '/referral/create':
-                return await create(data);
+                return await createReferral(data);
+            case '/referral/count':
+                return await getReferralsCount(data);
 
             // User.
             case '/user/login':
                 return await login(data);
             case '/user/read':
-                return await read(data);
+                return await readUser(data);
 
             // Default.
             default:

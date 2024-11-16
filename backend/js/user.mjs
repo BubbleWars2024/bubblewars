@@ -133,6 +133,7 @@ export const login = async (telegramInitData) => {
 
 
 export const readUser = async (telegramUserId) => {
+    // Read user from db.
     let userRecord = {};
     try {
         const params = {
@@ -152,4 +153,12 @@ export const readUser = async (telegramUserId) => {
     } catch (error) {
         return createResponse(500, 'Internal Server Error', 'readUser', `Failed to read user data: ${error.message}`);
     }
+
+    // Read user from referrals contract.
+    // TODO
+    try {} catch (error) {}
+    
+    // Read user's ENS.
+    // TODO
+    try {} catch (error) {}
 };
