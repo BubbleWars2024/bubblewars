@@ -11,10 +11,23 @@ export async function initName() {
     console.log('readUser', readUser);
 
     const provider = new ethers.JsonRpcProvider('https://sepolia.drpc.org');
-    console.log('readUser.walletAddress', readUser.walletAddress);
     const ensName = await provider.lookupAddress(readUser.walletAddress);
-    // const ensName = await provider.lookupAddress('0x8f85d07a468d9564c5E37Ca025545704A7258e2b');
+    state.ens = ensName;
+    if (state.ens) {
+        document.getElementById('username').innerText = state.ens;
+    }
+}
+
+
+export async function getPlayerEnsName(address) {
+    const data = {
+        address
+    };
+    let ensName = await accessBackend('ens/name', data);
+    // Trim address to first 6 characters.
+    if (!ensName) {
+        ensName = address.slice(0, 6);
+    }
     console.log('ensName', ensName);
-    state.ens = ensName || 'No ENS found';
-    document.getElementById('username').innerText = state.ens;
+    return ensName;
 }
