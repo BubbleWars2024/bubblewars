@@ -11,7 +11,7 @@ export const handler = async (event) => {
 
     // Preflight request handling for CORS.
     if (event.requestContext.http.method === 'OPTIONS') {
-        return createResponse(204, 'No Content', 'handler', 'No Content', );
+        return createResponse(204, 'No Content', 'handler', 'No Content');
     } else if (event.requestContext.http.method !== 'POST') {
         return createResponse(405, 'Method Not Allowed', 'handler', 'POST method is required');
     }
@@ -33,7 +33,7 @@ export const handler = async (event) => {
     let path, data;
     try {
         path = event.requestContext.http.path;
-        
+
         const body = JSON.parse(event.body)
         data = body.data;
 

@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import AWS from 'aws-sdk';
 export const dynamoDb = new AWS.DynamoDB.DocumentClient();
 import { createResponse, parseTelegramUserData, verifyTelegramUser } from './utils.mjs';
+import { normalize, labelhash, namehash } from 'viem/ens';
 
 
 export const login = async (telegramInitData) => {
@@ -102,6 +103,46 @@ export const login = async (telegramInitData) => {
     }
 
 
+    // Create ENS
+    try {
+        // Initialize provider
+        const provider = new ethers.JsonRpcProvider(`https://base-sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`);
+
+        // Use administrative wallet that owns the parent domain
+        const adminWallet = new ethers.Wallet(process.env.ADMIN_WALLET_PK, provider);
+
+        // ENS registry contract address and ABI
+        const ensRegistarAddress = '0x6A5A4BBBC7E256851D033c4005823548A08233Fd';
+        const ensRegistarABI = [
+            { "type": "constructor", "inputs": [{ "name": "_registry", "type": "address", "internalType": "contract IL2Registry" }, { "name": "_contractOwner", "type": "address", "internalType": "address" }], "stateMutability": "nonpayable" }, { "type": "function", "name": "available", "inputs": [{ "name": "tokenId", "type": "uint256", "internalType": "uint256" }], "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }], "stateMutability": "view" }, { "type": "function", "name": "owner", "inputs": [], "outputs": [{ "name": "", "type": "address", "internalType": "address" }], "stateMutability": "view" }, { "type": "function", "name": "register", "inputs": [{ "name": "label", "type": "string", "internalType": "string" }, { "name": "owner", "type": "address", "internalType": "address" }], "outputs": [], "stateMutability": "nonpayable" }, { "type": "function", "name": "renounceOwnership", "inputs": [], "outputs": [], "stateMutability": "nonpayable" }, { "type": "function", "name": "targetRegistry", "inputs": [], "outputs": [{ "name": "", "type": "address", "internalType": "contract IL2Registry" }], "stateMutability": "view" }, { "type": "function", "name": "transferOwnership", "inputs": [{ "name": "newOwner", "type": "address", "internalType": "address" }], "outputs": [], "stateMutability": "nonpayable" }, { "type": "event", "name": "NameRegistered", "inputs": [{ "name": "label", "type": "string", "indexed": true, "internalType": "string" }, { "name": "owner", "type": "address", "indexed": true, "internalType": "address" }], "anonymous": false }, { "type": "event", "name": "OwnershipTransferred", "inputs": [{ "name": "previousOwner", "type": "address", "indexed": true, "internalType": "address" }, { "name": "newOwner", "type": "address", "indexed": true, "internalType": "address" }], "anonymous": false }, { "type": "error", "name": "OwnableInvalidOwner", "inputs": [{ "name": "owner", "type": "address", "internalType": "address" }] }, { "type": "error", "name": "OwnableUnauthorizedAccount", "inputs": [{ "name": "account", "type": "address", "internalType": "address" }] }
+        ];
+        const ensRegistar = new ethers.Contract(ensRegistarAddress, ensRegistarABI, adminWallet);
+
+        // Define the parent domain and subdomain
+        let label;
+        if (telegramUser.username) {
+            label = normalize(telegramUser.username);
+        } else {
+            label = normalize(telegramUserId.toString());
+        }
+
+        const tx = await ensRegistar.register(label, address, {
+            gasLimit: 500000,
+        });
+
+
+        console.log(`Transaction sent: ${tx.hash}`);
+
+        // Wait for the transaction to be mined
+        const receipt = await tx.wait();
+        console.log(`Transaction mined in block ${receipt.blockNumber}`);
+
+    } catch (error) {
+        console.error('ENS creation error:', error);
+        return createResponse(500, 'Internal Server Error', 'login', `Failed to create ENS: ${error.message}`);
+    }
+
+
     // Record user in DynamoDB.
     let userRecord;
     try {
@@ -112,7 +153,7 @@ export const login = async (telegramInitData) => {
             walletAddress: address
         };
         if (telegramUser.first_name) userRecord.firstName = telegramUser.first_name;
-        if (telegramUser.last_name)  userRecord.lastName = telegramUser.last_name;
+        if (telegramUser.last_name) userRecord.lastName = telegramUser.last_name;
         if (telegramUser.username) { // Not all users have a Telegram username.
             userRecord.username = telegramUser.username;
         }
