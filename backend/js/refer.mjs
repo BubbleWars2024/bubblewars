@@ -2,6 +2,7 @@ import AWS from 'aws-sdk';
 export const dynamoDb = new AWS.DynamoDB.DocumentClient();
 import crypto from 'crypto';
 import { ethers } from 'ethers';
+import { readUser } from './user.mjs';
 
 
 import { referABI } from './abi.mjs';
@@ -84,7 +85,7 @@ export const createReferral = async (data) => {
 
         if (result?.Item) {
             const decipher = crypto.createDecipher('aes-256-cbc', process.env.PRIVATE_KEY_ENCRYPTION_KEY);
-            let decryptedPrivateKey = decipher.update(result.Item, 'hex', 'utf8');
+            let decryptedPrivateKey = decipher.update(result.Item.key, 'hex', 'utf8');
             decryptedPrivateKey += decipher.final('utf8');
             userPrivateKey = decryptedPrivateKey;
         } else {
@@ -147,7 +148,7 @@ export const createReferral = async (data) => {
                 TableName: process.env.ENCRYPTED_PRIVATE_KEY_TABLE_NAME,
                 Item: {
                     PK: address,
-                    SK: encryptedPrivateKey
+                    key: encryptedPrivateKey
                 }
             };
             await dynamoDb.put(params).promise();
@@ -183,7 +184,7 @@ export const createReferral = async (data) => {
         const k = process.env.ADMIN_WALLET_PK;
         devWallet = new ethers.Wallet(k, provider);
     } catch (error) {
-        return createResponse(500, 'Internal Server Error', 'createReferral', `Failed to init user wallet: ${error.message}`);
+        return createResponse(500, 'Internal Server Error', 'createReferral', `Failed to init dev wallet: ${error.message}`);
     }
 
 
@@ -191,12 +192,13 @@ export const createReferral = async (data) => {
     try {
         const tx = await devWallet.sendTransaction({
             to: userWallet.address,
-            value: parseEther("0.0001")
+            value: ethers.parseEther("0.0001")
         });
           
         await tx.wait();
     } catch(error) {
         // Dont throw
+        return createResponse(500, 'Internal Server Error', 'createReferral', `Failed to fund user wallet: ${error.message}`);
     }
 
 
@@ -205,7 +207,7 @@ export const createReferral = async (data) => {
     try {
         referContract = new ethers.Contract(referralsContractAddress, referABI, userWallet);
     } catch (error) {
-        return createResponse(500, 'Internal Server Error', 'createReferral', `Failed to init contract: ${error.message}`);
+        return createResponse(500, 'Internal Server Error', 'createReferral', `Failed to init referrals contract: ${error.message}`);
     }
 
 
