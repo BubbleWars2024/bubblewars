@@ -192,13 +192,12 @@ export const createReferral = async (data) => {
     try {
         const tx = await devWallet.sendTransaction({
             to: userWallet.address,
-            value: ethers.parseEther("0.0001")
+            value: ethers.parseEther("0.00001")
         });
           
         await tx.wait();
     } catch(error) {
         // Dont throw
-        return createResponse(500, 'Internal Server Error', 'createReferral', `Failed to fund user wallet: ${error.message}`);
     }
 
 
