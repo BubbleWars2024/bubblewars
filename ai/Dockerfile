@@ -1,10 +1,12 @@
-# Install dependencies only when needed
+# Use Node.js as the base image
 FROM node:18-alpine AS build
-RUN apk add --no-cache libc6-compat
+
+# Install necessary packages
+RUN apk add --no-cache libc6-compat python3 py3-pip
 
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
+# Copy package files and install Node.js dependencies
 COPY package.json yarn.lock ./
 RUN yarn
 
@@ -13,7 +15,7 @@ COPY . .
 # Build the Next.js project
 RUN yarn build
 
-# Production image
+# Create a production image
 FROM node:18-alpine AS runner
 WORKDIR /app
 
@@ -23,18 +25,17 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Install Python and virtualenv
+# Install Python and create a virtual environment
 RUN apk add --no-cache python3 py3-pip
-RUN python3 -m ensurepip
-RUN pip3 install --upgrade pip
-RUN pip3 install virtualenv
 
-# Create a virtual environment and install Python dependencies
+# Create a virtual environment
+RUN python3 -m venv /app/venv
+
+# Activate virtual environment and install dependencies
 COPY requirements.txt ./
-RUN python3 -m venv venv
-RUN . venv/bin/activate && pip install --no-cache-dir -r requirements.txt
+RUN . /app/venv/bin/activate && pip install --no-cache-dir -r requirements.txt
 
-# Copy Next.js files from the build stage
+# Copy Next.js build artifacts from the previous build stage
 COPY --from=build /app/next.config.mjs ./
 COPY --from=build /app/package.json ./package.json
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
