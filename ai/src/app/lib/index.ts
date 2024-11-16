@@ -56,18 +56,18 @@ async function GET(req: Request): Promise<Response> {
 
 
         // Use Open AI to generate response based on on-chain leaderboard context.
-        const onChainData = await fetchLeaderboard();
-        let onChainContext = 'On-chain data not available';
-        if (onChainData) {
-            const { players, scores } = onChainData;
-            onChainContext = `Current leaderboard: ${players.map((p: any, i: any) => `${p}: ${scores[i]}`).join(', ')}`;
-        }
+        // const onChainData = await fetchLeaderboard();
+        // let onChainContext = 'On-chain data not available';
+        // if (onChainData) {
+        //     const { players, scores } = onChainData;
+        //     onChainContext = `Current leaderboard: ${players.map((p: any, i: any) => `${p}: ${scores[i]}`).join(', ')}`;
+        // }
 
-        const prompt = queries.chatQuery ? queries.chatQuery[0] as string : 'Hello, who are you?';
+        const prompt = queries.chatQuery ? queries.chatQuery[0] as string : 'Update me on the current leaderboard';
         const openai = new OpenAI({ apiKey: openaiApiKey });
         const completion = await openai.chat.completions.create({
             messages: [
-                { role: 'system', content: `You have access to on-chain data: ${onChainContext}` },
+                // { role: 'system', content: `You have access to on-chain data: ${onChainContext}` },
                 { role: 'user', content: prompt }
             ],
             model: 'gpt-3.5-turbo',
