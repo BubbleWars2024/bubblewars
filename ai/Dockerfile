@@ -2,7 +2,7 @@
 FROM node:18-alpine AS build
 
 # Install necessary packages
-RUN apk add --no-cache libc6-compat python3 py3-pip gcc musl-dev libffi-dev openssl-dev make g++
+RUN apk add --no-cache libc6-compat python3 py3-pip gcc musl-dev libffi-dev openssl-dev make g++ python3-dev
 
 WORKDIR /app
 
@@ -26,12 +26,9 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Install Python and create a virtual environment
-RUN apk add --no-cache python3 py3-pip
+RUN apk add --no-cache python3 py3-pip gcc musl-dev libffi-dev openssl-dev make g++ python3-dev
 
-# Install build dependencies for Python packages
-RUN apk add --no-cache gcc musl-dev libffi-dev openssl-dev make g++
-
-# Create a virtual environment and install Python dependencies
+# Create a virtual environment
 RUN python3 -m venv /app/venv
 
 # Activate virtual environment and install dependencies
