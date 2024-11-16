@@ -5,7 +5,7 @@ interface IERP {
     error ERPReferralIsZeroAddress();
     error ERPReferralIsSender();
 
-    event NewReferralProgram(address indexed to, uint256 indexed programId);
+    event NewReferralProgram(address indexed to, uint256 indexed programId, address[] hooks);
     event SetReferral(
         uint256 indexed programId,
         address indexed account,
@@ -17,6 +17,8 @@ interface IERP {
         mapping(address => address) referrals;
         address[] hooks;
     }
+
+    function getReferralProgram(uint256 programId) external view returns (address[] memory hooks);
 
     function getTotalReferrals(
         uint256 programId,

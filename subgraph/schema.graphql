@@ -1,48 +1,20 @@
-type Approval @entity(immutable: true) {
-  id: Bytes!
-  owner: Bytes! # address
-  approved: Bytes! # address
-  tokenId: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+type ReferralProgram @entity(immutable: true) {
+    id: Bytes!
+    deployer: Bytes!
+    hooks: [Bytes!]!
+    referralTotals: [ReferralTotal!]! @derivedFrom(field: "referralProgram")
+    referrals: [Referral!]! @derivedFrom(field: "referralProgram")
 }
 
-type ApprovalForAll @entity(immutable: true) {
-  id: Bytes!
-  owner: Bytes! # address
-  operator: Bytes! # address
-  approved: Boolean! # bool
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+type ReferralTotal @entity {
+    id: Bytes!
+    total: BigInt!
+    referralProgram: ReferralProgram!
 }
 
-type NewReferralProgram @entity(immutable: true) {
-  id: Bytes!
-  to: Bytes! # address
-  programId: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type SetReferral @entity(immutable: true) {
-  id: Bytes!
-  programId: BigInt! # uint256
-  account: Bytes! # address
-  referral: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type Transfer @entity(immutable: true) {
-  id: Bytes!
-  from: Bytes! # address
-  to: Bytes! # address
-  tokenId: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+type Referral @entity(immutable: true) {
+    id: Bytes!
+    account: Bytes!
+    referral: Bytes!
+    referralProgram: ReferralProgram!
 }
