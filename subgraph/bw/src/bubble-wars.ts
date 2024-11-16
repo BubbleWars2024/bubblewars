@@ -1,72 +1,63 @@
+import { BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
-  NewReferral as NewReferralEvent,
-  OwnershipTransferred as OwnershipTransferredEvent,
-  RaidEnded as RaidEndedEvent,
-  RaidStarted as RaidStartedEvent
+    NewReferral as NewReferralEvent,
+    RaidEnded as RaidEndedEvent,
+    RaidStarted as RaidStartedEvent
 } from "../generated/BubbleWars/BubbleWars"
 import {
-  NewReferral,
-  OwnershipTransferred,
-  RaidEnded,
-  RaidStarted
+    Bubble,
+    Raid
 } from "../generated/schema"
 
 export function handleNewReferral(event: NewReferralEvent): void {
-  let entity = new NewReferral(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.account = event.params.account
-  entity.referral = event.params.referral
+    let accountBubble = Bubble.load(event.params.account);
+    if(!accountBubble) {
+        accountBubble = new Bubble(event.params.account);
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+        accountBubble.points = BigInt.zero();
+        accountBubble.lastRaid = BigInt.zero();
+    }
+    accountBubble.points = accountBubble.points.plus(BigInt.fromI32(1));
 
-  entity.save()
-}
+    let referralBubble = Bubble.load(event.params.referral);
+    if(!referralBubble) {
+        referralBubble = new Bubble(event.params.referral);
 
-export function handleOwnershipTransferred(
-  event: OwnershipTransferredEvent
-): void {
-  let entity = new OwnershipTransferred(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.previousOwner = event.params.previousOwner
-  entity.newOwner = event.params.newOwner
+        referralBubble.points = BigInt.zero();
+        referralBubble.lastRaid = BigInt.zero();
+    }
+    referralBubble.points = referralBubble.points.plus(BigInt.fromI32(2));
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
-}
-
-export function handleRaidEnded(event: RaidEndedEvent): void {
-  let entity = new RaidEnded(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.raidId = event.params.raidId
-  entity.loser = event.params.loser
-  entity.damage = event.params.damage
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
+    accountBubble.save();
+    referralBubble.save();
 }
 
 export function handleRaidStarted(event: RaidStartedEvent): void {
-  let entity = new RaidStarted(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.raidId = event.params.raidId
-  entity.raider = event.params.raider
-  entity.defender = event.params.defender
+    let raid = new Raid(raidId(event.params.raidId));
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+    raid.raider = event.params.raider;
+    raid.defender = event.params.defender;
+    raid.loser = Bytes.empty();
+    raid.damage = BigInt.zero();
+    raid.ended = false;
 
-  entity.save()
+    raid.save();
+}
+
+export function handleRaidEnded(event: RaidEndedEvent): void {
+    let raid = Raid.load(raidId(event.params.raidId));
+    if(raid) {
+        raid.loser = event.params.loser;
+        raid.damage = event.params.damage;
+
+        raid.save();
+    }
+}
+
+function raidId(id: BigInt): Bytes {
+    return Bytes.fromHexString(uint256ToHex(id));
+}
+
+function uint256ToHex(value: BigInt): string {
+    return `0x${value.toHex().replace("0x", "").padStart(64, "0")}`;
 }

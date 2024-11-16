@@ -1,37 +1,14 @@
-type NewReferral @entity(immutable: true) {
-  id: Bytes!
-  account: Bytes! # address
-  referral: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+type Bubble @entity {
+    id: Bytes!
+    points: BigInt!
+    lastRaid: BigInt!
 }
 
-type OwnershipTransferred @entity(immutable: true) {
-  id: Bytes!
-  previousOwner: Bytes! # address
-  newOwner: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type RaidEnded @entity(immutable: true) {
-  id: Bytes!
-  raidId: BigInt! # uint64
-  loser: Bytes! # address
-  damage: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type RaidStarted @entity(immutable: true) {
-  id: Bytes!
-  raidId: BigInt! # uint64
-  raider: Bytes! # address
-  defender: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+type Raid @entity {
+    id: Bytes!
+    raider: Bytes!
+    defender: Bytes!
+    loser: Bytes!
+    damage: BigInt!
+    ended: Boolean!
 }

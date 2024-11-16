@@ -16,18 +16,14 @@ dataSources:
       apiVersion: 0.0.7
       language: wasm/assemblyscript
       entities:
-        - NewReferral
-        - OwnershipTransferred
-        - RaidEnded
-        - RaidStarted
+        - Bubble
+        - Raid
       abis:
         - name: BubbleWars
           file: ./abis/BubbleWars.json
       eventHandlers:
         - event: NewReferral(indexed address,indexed address)
           handler: handleNewReferral
-        - event: OwnershipTransferred(indexed address,indexed address)
-          handler: handleOwnershipTransferred
         - event: RaidEnded(indexed uint64,indexed address,indexed uint256)
           handler: handleRaidEnded
         - event: RaidStarted(indexed uint64,indexed address,indexed address)
