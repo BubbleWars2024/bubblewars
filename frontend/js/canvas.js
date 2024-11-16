@@ -45,9 +45,9 @@ const keysPressed = {};
 //// BUBBLES ////
 
 
-// Array to store bubbles
 const bubbles = [];
 let isDraggingPlayer = false;
+let bubbleSpawnTimer = 0;
 
 
 //// GRID ////
@@ -103,6 +103,31 @@ function updatePlayer(deltaTime) {
 }
 
 
+function checkCollisionAndAbsorb() {
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+        const bubble = bubbles[i];
+        const dx = bubble.x - player.x;
+        const dy = bubble.y - player.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Collision detection
+        if (distance < player.radius + bubble.radius) {
+            if (bubble.radius < player.radius) {
+                // Player eats the smaller bubble
+                player.radius += bubble.radius * 0.05; // Decrease growth rate
+                bubbles.splice(i, 1); // Remove the eaten bubble
+            } else {
+                // Larger bubble absorbs from the player
+                const sizeTaken = bubble.radius * 0.05;
+                player.radius -= sizeTaken;
+                
+                // Prevent player radius from going below a minimum size
+                player.radius = Math.max(player.radius, 10);
+            }
+        }
+    }
+}
+
 
 //// BUBBLES ////
 
@@ -118,17 +143,29 @@ function drawBubble(bubble) {
 }
 
 
-// Create random bubbles with varying speeds
-function createRandomBubbles(count) {
-    for (let i = 0; i < count; i++) {
-        bubbles.push({
-            x: Math.random() * worldWidth,
-            y: Math.random() * worldHeight,
-            radius: Math.random() * 20 + 10,
-            color: 'green',
-            dx: (Math.random() - 0.5) * 1.5,
-            dy: (Math.random() - 0.5) * 1.5
-        });
+// Continuously create new random bubbles
+function createRandomBubble() {
+    const isLarger = Math.random() < 0.5; // 50% chance of bubble being larger than player
+    const bubbleRadius = isLarger ? Math.random() * 30 + 20 : Math.random() * 15 + 5;
+
+    const bubble = {
+        x: Math.random() * worldWidth,
+        y: Math.random() * worldHeight,
+        radius: bubbleRadius,
+        color: 'green',
+        dx: (Math.random() - 0.5) * 1.5,
+        dy: (Math.random() - 0.5) * 1.5
+    };
+    bubbles.push(bubble);
+}
+
+
+// Function to spawn bubbles periodically
+function spawnBubbles(deltaTime) {
+    bubbleSpawnTimer += deltaTime;
+    if (bubbleSpawnTimer > 0.2) { // spawn a new bubble every 0.2 seconds (increase spawn rate)
+        createRandomBubble();
+        bubbleSpawnTimer = 0;
     }
 }
 
@@ -155,7 +192,7 @@ function updateBubbles() {
 function drawBorder() {
     const topLeft = worldToScreen(0, 0);
     const bottomRight = worldToScreen(worldWidth, worldHeight);
-    ctx.strokeStyle = '#FF0000';
+    ctx.strokeStyle = '#FF7B53';
     ctx.lineWidth = 3;
     ctx.strokeRect(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y);
 }
@@ -165,7 +202,7 @@ function drawBorder() {
 function drawGrid() {
     const gridSize = 100;
     const { x: offsetX, y: offsetY } = worldToScreen(0, 0);
-    ctx.strokeStyle = `rgba(200, 200, 200, ${gridAlpha})`;
+    ctx.strokeStyle = `rgba(255, 123, 83, ${gridAlpha})`;
     ctx.lineWidth = 1;
 
     // Draw vertical grid lines
@@ -270,13 +307,11 @@ function updatePlayerDirection() {
 //// GAME LOOP ////
 
 
-// Main game loop with adjusted delta time calculation
 function gameLoop(timestamp) {
     if (!lastTimestamp) lastTimestamp = timestamp;
 
-    // Calculate deltaTime in seconds and cap it
     let deltaTime = (timestamp - lastTimestamp) / 1000;
-    deltaTime = Math.min(deltaTime, 0.05); // Cap to prevent large jumps (50ms)
+    deltaTime = Math.min(deltaTime, 0.05);
     lastTimestamp = timestamp;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -285,6 +320,8 @@ function gameLoop(timestamp) {
     drawGrid();
     updatePlayer(deltaTime);
     updateBubbles();
+    spawnBubbles(deltaTime); // Spawn new bubbles over time
+    checkCollisionAndAbsorb(); // Check for collisions and absorb bubbles
     drawPlayer();
 
     for (const bubble of bubbles) {
@@ -293,7 +330,6 @@ function gameLoop(timestamp) {
 
     requestAnimationFrame(gameLoop);
 }
-
 
 
 // Event listeners
@@ -317,7 +353,11 @@ window.addEventListener('resize', () => {
 
 // Initialize the game with timestamp
 export function initGame() {
-    createRandomBubbles(50);
+    // Spawn some initial bubbles
+    for (let i = 0; i < 50; i++) {
+        createRandomBubble();
+    }
+    
     initControls();
     requestAnimationFrame(gameLoop);
 }
