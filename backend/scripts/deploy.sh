@@ -9,6 +9,11 @@ ZIP_FILE="lambda.zip"
 echo "Starting deployment process..."
 
 
+# Update node modules.
+echo "Updating node modules..."
+npm install
+
+
 # Zip the Lambda function code.
 echo "Zipping Lambda function code..."
 zip -r ./$ZIP_FILE .

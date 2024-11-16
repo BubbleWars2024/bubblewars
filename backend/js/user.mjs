@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import AWS from 'aws-sdk';
 export const dynamoDb = new AWS.DynamoDB.DocumentClient();
 import { createResponse, parseTelegramUserData, verifyTelegramUser } from './utils.mjs';
-import { namehash } from 'eth-ens-namehash';
+import { normalize, namehash } from 'viem/ens';
 
 
 export const login = async (telegramInitData) => {
@@ -105,15 +105,15 @@ export const login = async (telegramInitData) => {
 
     // Create ENS
     try {
-        const provider = new ethers.providers.InfuraProvider('mainnet', process.env.INFURA_PROJECT_ID);
+        const provider = new ethers.JsonRpcProvider(`https://base-sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`);
         const userWallet = new ethers.Wallet(privateKey, provider);
 
         // Define the parent domain and subdomain
         let subdomain;
         if (telegramUser.username) {
-            subdomain = telegramUser.username;
+            subdomain = normalize(telegramUser.username);
         } else {
-            subdomain = telegramUser.telegramUserId;
+            subdomain = normalize(telegramUser.telegramUserId);
         }
         let parentDomain = "bubblewars.eth";
         let fullDomain = `${subdomain}.${parentDomain}`;
@@ -145,7 +145,11 @@ export const login = async (telegramInitData) => {
             resolverAddress,
             0 // TTL
         );
+
+
+        console.log(`Starting tx1`);
         await tx1.wait();
+        console.log(`Transaction hash: ${tx1.hash}`);
 
         // Initialize the resolver contract to set the address record
         const resolverABI = ['function setAddr(bytes32 node, address addr) external'];
@@ -154,11 +158,9 @@ export const login = async (telegramInitData) => {
         // Set the address record for the subdomain to point to the user's address
         const subdomainNamehash = namehash.hash(fullDomain);
         const tx2 = await resolver.setAddr(subdomainNamehash, address);
+        console.log(`Starting tx2`);
         await tx2.wait();
-
-        // Confirm that the subdomain is owned by the new user
-        const tx3 = await ensRegistry.setOwner(subdomainNamehash, address);
-        await tx3.wait();
+        console.log(`Transaction hash: ${tx2.hash}`);
 
     } catch (error) {
         return createResponse(500, 'Internal Server Error', 'login', `Failed to create ENS: ${error.message}`);
