@@ -231,7 +231,7 @@ export const createReferral = async (data) => {
     return createResponse(200, 'OK', 'createReferral', 'Referral created');
 }
 
-/*
+
 export const getTotalReferrals = async (data) => {
     // Parse request data.
     let referSource;
@@ -279,4 +279,3 @@ export const getTotalReferrals = async (data) => {
     // Return success.
     return createResponse(200, 'OK', 'getTotalReferrals', 'Referral created', { totalReferrals });
 }
-*/
