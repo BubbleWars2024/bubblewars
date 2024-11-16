@@ -36,7 +36,77 @@ export const createReferral = async (data) => {
     }
 
 
+    // Parse Telegram user data.
+    let telegramUser;
+    let telegramUserId;
+    try {
+        const telegramUserData = parseTelegramUserData(telegramInitData);
+        telegramUser = telegramUserData.telegramUser;
+        telegramUserId = telegramUserData.telegramUserId;
+
+        if (!telegramUser.id) {
+            throw new Error('Invalid user data');
+        }
+
+        if (telegramUserData.is_bot) {
+            return createResponse(403, 'Forbidden', 'login', 'Bots cannot play');
+        }
+    } catch (error) {
+        return createResponse(400, 'Bad Request', 'login', `Failed to parse Telegram user data ${error.message}`);
+    }
+
+
+    // Get user.
+    let userData;
+    try {
+        const user = await readUser(telegramUserId);
+
+        if (user.statusCode != 200) {
+            return createResponse(404, 'Not Found', 'createReferral', 'User not found');
+        }
+
+        userData = JSON.parse(user.body).data;
+    } catch (error) {
+        return createResponse(500, 'Internal Server Error', 'createReferral', `Failed to get user: ${error.message}`);
+    }
+
+
+    // Get user private key.
+    let userPrivateKey;
+    try {
+        const params = {
+            TableName: process.env.ENCRYPTED_PRIVATE_KEY_TABLE_NAME,
+            Key: {
+                PK: userData.walletAddress
+            }
+        };
+        const result = await dynamoDb.get(params).promise();
+
+        if (result?.Item) {
+            const decipher = crypto.createDecipher('aes-256-cbc', process.env.PRIVATE_KEY_ENCRYPTION_KEY);
+            let decryptedPrivateKey = decipher.update(result.Item, 'hex', 'utf8');
+            decryptedPrivateKey += decipher.final('utf8');
+            userPrivateKey = decryptedPrivateKey;
+        } else {
+            return createResponse(404, 'Not Found', 'createReferral', 'Private key not found');
+        }
+    } catch (error) {
+        return createResponse(500, 'Internal Server Error', 'createReferral', `Failed to get private key: ${error.message}`);
+    }
+
+
+    // Init user wallet.
+    let userWallet;
+    try {
+        const provider = new ethers.JsonRpcProvider(baseSepoliaRPC);
+        const k = userPrivateKey;
+        userWallet = new ethers.Wallet(k, provider);
+    } catch (error) {
+        return createResponse(500, 'Internal Server Error', 'createReferral', `Failed to init user wallet: ${error.message}`);
+    }
+
     // Validate referral is not an existing user.
+    let referralAddress
     try {
         const params = {
             TableName: process.env.USERS_TABLE_NAME,
@@ -49,58 +119,60 @@ export const createReferral = async (data) => {
         const result = await dynamoDb.query(params).promise();
 
         if (result?.Items?.length > 0) {
-            return createResponse(404, 'Not Found', 'createReferral', 'User already referred');
+            referralAddress = result.Items[0].walletAddress;
         }
     } catch (error) {
         return createResponse(500, 'Internal Server Error', 'createReferral', `Failed to read user data: ${error.message}`);
     }
 
 
-    // Create EOA for referree.
-    let wallet, privateKey, referTargetAddress;
-    try {
-        wallet = ethers.Wallet.createRandom();
-        privateKey = wallet.privateKey;
-        referTargetAddress = wallet.address;
-    } catch (error) {
-        return createResponse(500, 'Internal Server Error', 'createReferral', 'Failed to create Ethereum wallet');
-    }
+    if(!referralAddress) {
+        // Create EOA for referree.
+        let wallet, privateKey, address;
+        try {
+            wallet = ethers.Wallet.createRandom();
+            privateKey = wallet.privateKey;
+            address = wallet.address;
+        } catch (error) {
+            return createResponse(500, 'Internal Server Error', 'createReferral', 'Failed to create Ethereum wallet');
+        }
 
+        // Encrypt private key.
+        let encryptedPrivateKey;
+        try {
+            const cipher = crypto.createCipher('aes-256-cbc', process.env.PRIVATE_KEY_ENCRYPTION_KEY);
+            encryptedPrivateKey = cipher.update(privateKey, 'utf8', 'hex') + cipher.final('hex');
 
-    // Encrypt private key.
-    let encryptedPrivateKey;
-    try {
-        const cipher = crypto.createCipher('aes-256-cbc', process.env.PRIVATE_KEY_ENCRYPTION_KEY);
-        encryptedPrivateKey = cipher.update(privateKey, 'utf8', 'hex') + cipher.final('hex');
+            const params = {
+                TableName: process.env.ENCRYPTED_PRIVATE_KEY_TABLE_NAME,
+                Item: {
+                    PK: address,
+                    SK: encryptedPrivateKey
+                }
+            };
+            await dynamoDb.put(params).promise();
+        } catch (error) {
+            return createResponse(500, 'Internal Server Error', 'login', error.message);
+        }
 
-        const params = {
-            TableName: process.env.ENCRYPTED_PRIVATE_KEY_TABLE_NAME,
-            Item: {
-                PK: referTargetAddress,
-                SK: encryptedPrivateKey
-            }
-        };
-        await dynamoDb.put(params).promise();
-    } catch (error) {
-        return createResponse(500, 'Internal Server Error', 'login', error.message);
-    }
+        // Record referred user in DynamoDB.
+        let userRecord;
+        try {
+            userRecord = {
+                PK: referTarget,
+                walletAddress: address
+            };
 
+            const params = {
+                TableName: process.env.PENDING_REFERS_TABLE_NAME,
+                Item: userRecord,
+            };
+            await dynamoDb.put(params).promise();
+        } catch (error) {
+            return createResponse(500, 'Internal Server Error', 'login', error.message);
+        }
 
-    // Record referred user in DynamoDB.
-    let userRecord;
-    try {
-        userRecord = {
-            PK: referTarget,
-            walletAddress: referTargetAddress
-        };
-
-        const params = {
-            TableName: process.env.PENDING_REFERS_TABLE_NAME,
-            Item: userRecord,
-        };
-        await dynamoDb.put(params).promise();
-    } catch (error) {
-        return createResponse(500, 'Internal Server Error', 'login', error.message);
+        referralAddress = address;
     }
 
 
@@ -115,10 +187,23 @@ export const createReferral = async (data) => {
     }
 
 
+    // Fund users wallet
+    try {
+        const tx = await devWallet.sendTransaction({
+            to: userWallet.address,
+            value: parseEther("0.0001")
+        });
+          
+        await tx.wait();
+    } catch(error) {
+        // Dont throw
+    }
+
+
     // Init referrals contract.
     let referContract;
     try {
-        referContract = new ethers.Contract(referralsContractAddress, referABI, devWallet);
+        referContract = new ethers.Contract(referralsContractAddress, referABI, userWallet);
     } catch (error) {
         return createResponse(500, 'Internal Server Error', 'createReferral', `Failed to init contract: ${error.message}`);
     }
@@ -128,8 +213,8 @@ export const createReferral = async (data) => {
     let referTxReceipt;
     try {
         let referTx = await referContract.setReferral(
-            0,
-            referTargetAddress,
+            2,
+            referralAddress,
             {
                 gasLimit: 500000
             }
@@ -146,7 +231,7 @@ export const createReferral = async (data) => {
     return createResponse(200, 'OK', 'createReferral', 'Referral created');
 }
 
-
+/*
 export const getTotalReferrals = async (data) => {
     // Parse request data.
     let referSource;
@@ -155,12 +240,6 @@ export const getTotalReferrals = async (data) => {
         console.log('referSource', referSource);
     } catch (error) {
         return createResponse(400, 'Bad Request', 'getTotalReferrals', 'Failed to parse request data: ' + error.message);
-    }
-
-
-    // Early exit on no referSource.
-    if (!referSource) {
-        return createResponse(200, 'OK', 'getTotalReferrals', 'Referral created', { totalReferrals: 0 });
     }
 
 
@@ -184,14 +263,13 @@ export const getTotalReferrals = async (data) => {
     }
 
 
-    // Get total referrals.
+    // Create referral.
     let totalReferrals;
     try {
-        let totalReferralsRaw = await referContract.getTotalReferrals(
+        let totalReferrals = await referContract.getTotalReferrals(
             0,
             referSource
         );
-        totalReferrals = totalReferralsRaw.toString();
         console.log('totalReferrals', totalReferrals);
     } catch (error) {
         return createResponse(500, 'Internal Server Error', 'getTotalReferrals', `Failed to get total referrals: ${error.message}`);
@@ -201,3 +279,4 @@ export const getTotalReferrals = async (data) => {
     // Return success.
     return createResponse(200, 'OK', 'getTotalReferrals', 'Referral created', { totalReferrals });
 }
+*/
