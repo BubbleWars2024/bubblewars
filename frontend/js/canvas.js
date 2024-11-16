@@ -103,6 +103,22 @@ function updatePlayer(deltaTime) {
 }
 
 
+function checkCollisionAndAbsorb() {
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+        const bubble = bubbles[i];
+        const dx = bubble.x - player.x;
+        const dy = bubble.y - player.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Check if the player can eat the bubble
+        if (distance < player.radius + bubble.radius && bubble.radius < player.radius) {
+            // Absorb the bubble and increase player's size
+            player.radius += bubble.radius * 0.3; // Increase player size proportionally
+            bubbles.splice(i, 1); // Remove the eaten bubble
+        }
+    }
+}
+
 
 //// BUBBLES ////
 
@@ -118,17 +134,26 @@ function drawBubble(bubble) {
 }
 
 
-// Create random bubbles with varying speeds
-function createRandomBubbles(count) {
-    for (let i = 0; i < count; i++) {
-        bubbles.push({
-            x: Math.random() * worldWidth,
-            y: Math.random() * worldHeight,
-            radius: Math.random() * 20 + 10,
-            color: 'green',
-            dx: (Math.random() - 0.5) * 1.5,
-            dy: (Math.random() - 0.5) * 1.5
-        });
+// Continuously create new random bubbles
+function createRandomBubble() {
+    const bubble = {
+        x: Math.random() * worldWidth,
+        y: Math.random() * worldHeight,
+        radius: Math.random() * 20 + 10,
+        color: 'green',
+        dx: (Math.random() - 0.5) * 1.5,
+        dy: (Math.random() - 0.5) * 1.5
+    };
+    bubbles.push(bubble);
+}
+
+// Function to spawn bubbles periodically
+let bubbleSpawnTimer = 0;
+function spawnBubbles(deltaTime) {
+    bubbleSpawnTimer += deltaTime;
+    if (bubbleSpawnTimer > 0.5) { // spawn a new bubble every 0.5 seconds
+        createRandomBubble();
+        bubbleSpawnTimer = 0;
     }
 }
 
@@ -270,13 +295,11 @@ function updatePlayerDirection() {
 //// GAME LOOP ////
 
 
-// Main game loop with adjusted delta time calculation
 function gameLoop(timestamp) {
     if (!lastTimestamp) lastTimestamp = timestamp;
 
-    // Calculate deltaTime in seconds and cap it
     let deltaTime = (timestamp - lastTimestamp) / 1000;
-    deltaTime = Math.min(deltaTime, 0.05); // Cap to prevent large jumps (50ms)
+    deltaTime = Math.min(deltaTime, 0.05);
     lastTimestamp = timestamp;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -285,6 +308,8 @@ function gameLoop(timestamp) {
     drawGrid();
     updatePlayer(deltaTime);
     updateBubbles();
+    spawnBubbles(deltaTime); // Spawn new bubbles over time
+    checkCollisionAndAbsorb(); // Check for collisions and absorb bubbles
     drawPlayer();
 
     for (const bubble of bubbles) {
@@ -293,7 +318,6 @@ function gameLoop(timestamp) {
 
     requestAnimationFrame(gameLoop);
 }
-
 
 
 // Event listeners
@@ -317,7 +341,11 @@ window.addEventListener('resize', () => {
 
 // Initialize the game with timestamp
 export function initGame() {
-    createRandomBubbles(50);
+    // Spawn some initial bubbles
+    for (let i = 0; i < 50; i++) {
+        createRandomBubble();
+    }
+    
     initControls();
     requestAnimationFrame(gameLoop);
 }
