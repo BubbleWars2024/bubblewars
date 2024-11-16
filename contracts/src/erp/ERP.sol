@@ -16,6 +16,10 @@ contract ERP is IERP, ERC721 {
 
     constructor() ERC721("Ethereum Referral Protocol", "ERP") {}
 
+    function getReferralProgram(uint256 programId) external view override returns (address[] memory) {
+        return _programs[programId].hooks;
+    }
+
     function getTotalReferrals(
         uint256 programId,
         address account
@@ -41,7 +45,7 @@ contract ERP is IERP, ERC721 {
 
         _safeMint(to, programId);
 
-        emit NewReferralProgram(to, programId);
+        emit NewReferralProgram(to, programId, hooks);
     }
 
     function setReferral(

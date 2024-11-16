@@ -1,0 +1,30 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: ERP
+    network: base-sepolia
+    source:
+      address: "0xD0B8D0425b737A920Db0B7581Cd2c45CB8caF0fa"
+      abi: ERP
+      startBlock: 17984157
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - ReferralProgram
+        - ReferralTotal
+        - Referral
+      abis:
+        - name: ERP
+          file: ./abis/ERP.json
+      eventHandlers:
+        - event: NewReferralProgram(indexed address,indexed uint256,address[])
+          handler: handleNewReferralProgram
+        - event: SetReferral(indexed uint256,indexed address,indexed address)
+          handler: handleSetReferral
+      file: ./src/erp.ts

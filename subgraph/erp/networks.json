@@ -1,0 +1,8 @@
+{
+  "base-sepolia": {
+    "ERP": {
+      "address": "0xD0B8D0425b737A920Db0B7581Cd2c45CB8caF0fa",
+      "startBlock": 17984157
+    }
+  }
+}

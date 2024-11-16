@@ -1,0 +1,21 @@
+type ReferralProgram @entity {
+    id: Bytes!
+    deployer: Bytes!
+    hooks: [Bytes!]!
+    referralTotals: [ReferralTotal!]! @derivedFrom(field: "referralProgram")
+    referrals: [Referral!]! @derivedFrom(field: "referralProgram")
+}
+
+type ReferralTotal @entity {
+    id: Bytes!
+    address: Bytes!
+    total: BigInt!
+    referralProgram: ReferralProgram!
+}
+
+type Referral @entity {
+    id: Bytes!
+    account: Bytes!
+    referral: Bytes!
+    referralProgram: ReferralProgram!
+}
