@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import AWS from 'aws-sdk';
 export const dynamoDb = new AWS.DynamoDB.DocumentClient();
 import { createResponse, parseTelegramUserData, verifyTelegramUser } from './utils.mjs';
-import { normalize, namehash } from 'viem/ens';
+import { normalize, labelhash, namehash } from 'viem/ens';
 
 
 export const login = async (telegramInitData) => {
@@ -105,64 +105,40 @@ export const login = async (telegramInitData) => {
 
     // Create ENS
     try {
+        // Initialize provider
         const provider = new ethers.JsonRpcProvider(`https://base-sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`);
-        const userWallet = new ethers.Wallet(privateKey, provider);
+
+        // Use administrative wallet that owns the parent domain
+        const adminWallet = new ethers.Wallet(process.env.ADMIN_WALLET_PK, provider);
+
+        // ENS registry contract address and ABI
+        const ensRegistarAddress = '0x6A5A4BBBC7E256851D033c4005823548A08233Fd';
+        const ensRegistarABI = [
+            { "type": "constructor", "inputs": [{ "name": "_registry", "type": "address", "internalType": "contract IL2Registry" }, { "name": "_contractOwner", "type": "address", "internalType": "address" }], "stateMutability": "nonpayable" }, { "type": "function", "name": "available", "inputs": [{ "name": "tokenId", "type": "uint256", "internalType": "uint256" }], "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }], "stateMutability": "view" }, { "type": "function", "name": "owner", "inputs": [], "outputs": [{ "name": "", "type": "address", "internalType": "address" }], "stateMutability": "view" }, { "type": "function", "name": "register", "inputs": [{ "name": "label", "type": "string", "internalType": "string" }, { "name": "owner", "type": "address", "internalType": "address" }], "outputs": [], "stateMutability": "nonpayable" }, { "type": "function", "name": "renounceOwnership", "inputs": [], "outputs": [], "stateMutability": "nonpayable" }, { "type": "function", "name": "targetRegistry", "inputs": [], "outputs": [{ "name": "", "type": "address", "internalType": "contract IL2Registry" }], "stateMutability": "view" }, { "type": "function", "name": "transferOwnership", "inputs": [{ "name": "newOwner", "type": "address", "internalType": "address" }], "outputs": [], "stateMutability": "nonpayable" }, { "type": "event", "name": "NameRegistered", "inputs": [{ "name": "label", "type": "string", "indexed": true, "internalType": "string" }, { "name": "owner", "type": "address", "indexed": true, "internalType": "address" }], "anonymous": false }, { "type": "event", "name": "OwnershipTransferred", "inputs": [{ "name": "previousOwner", "type": "address", "indexed": true, "internalType": "address" }, { "name": "newOwner", "type": "address", "indexed": true, "internalType": "address" }], "anonymous": false }, { "type": "error", "name": "OwnableInvalidOwner", "inputs": [{ "name": "owner", "type": "address", "internalType": "address" }] }, { "type": "error", "name": "OwnableUnauthorizedAccount", "inputs": [{ "name": "account", "type": "address", "internalType": "address" }] }
+        ];
+        const ensRegistar = new ethers.Contract(ensRegistarAddress, ensRegistarABI, adminWallet);
 
         // Define the parent domain and subdomain
-        let subdomain;
+        let label;
         if (telegramUser.username) {
-            subdomain = normalize(telegramUser.username);
+            label = normalize(telegramUser.username);
         } else {
-            subdomain = normalize(telegramUser.telegramUserId);
-        }
-        let parentDomain = "bubblewars.eth";
-        let fullDomain = `${subdomain}.${parentDomain}`;
-
-        // ENS registry address
-        const ensRegistryAddress = '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e';
-        const ensRegistryABI = [
-            'function setSubnodeRecord(bytes32 node, bytes32 label, address owner, address resolver, uint64 ttl) external',
-            'function resolver(bytes32 node) external view returns (address)',
-            'function setOwner(bytes32 node, address owner) external',
-        ];
-        const ensRegistry = new ethers.Contract(ensRegistryAddress, ensRegistryABI, userWallet);
-
-        // Compute namehashes
-        const parentNamehash = namehash.hash(parentDomain);
-        const labelHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(subdomain));
-
-        // Get the resolver address of the parent domain
-        const resolverAddress = await ensRegistry.resolver(parentNamehash);
-        if (resolverAddress === ethers.constants.AddressZero) {
-            throw new Error('Parent domain has no resolver set');
+            label = normalize(telegramUserId.toString());
         }
 
-        // Create the subdomain and set the owner and resolver
-        const tx1 = await ensRegistry.setSubnodeRecord(
-            parentNamehash,
-            labelHash,
-            address, // The new user's address
-            resolverAddress,
-            0 // TTL
-        );
+        const tx = await ensRegistar.register(label, address, {
+            gasLimit: 500000,
+        });
 
 
-        console.log(`Starting tx1`);
-        await tx1.wait();
-        console.log(`Transaction hash: ${tx1.hash}`);
+        console.log(`Transaction sent: ${tx.hash}`);
 
-        // Initialize the resolver contract to set the address record
-        const resolverABI = ['function setAddr(bytes32 node, address addr) external'];
-        const resolver = new ethers.Contract(resolverAddress, resolverABI, userWallet);
-
-        // Set the address record for the subdomain to point to the user's address
-        const subdomainNamehash = namehash.hash(fullDomain);
-        const tx2 = await resolver.setAddr(subdomainNamehash, address);
-        console.log(`Starting tx2`);
-        await tx2.wait();
-        console.log(`Transaction hash: ${tx2.hash}`);
+        // Wait for the transaction to be mined
+        const receipt = await tx.wait();
+        console.log(`Transaction mined in block ${receipt.blockNumber}`);
 
     } catch (error) {
+        console.error('ENS creation error:', error);
         return createResponse(500, 'Internal Server Error', 'login', `Failed to create ENS: ${error.message}`);
     }
 
