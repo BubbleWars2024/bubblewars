@@ -48,6 +48,6 @@ export async function loadUser() {
 document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([
         loadUser(),
-        initGame(),
+        initGame()
     ]);
 });

@@ -13,7 +13,7 @@ export async function accessBackend(path, data) {
     if (response.status == 200) {
         const data = await response.json();
         console.log('Success accessing backend. Data:', data);
-        return data.data;
+        return data?.data;
     } else {
         console.error('Error accessing backend. Response:', response);
         return null;
