@@ -1,11 +1,11 @@
 import { request, gql } from 'graphql-request';
 
-const GRAPH_API_URL = "https://api.studio.thegraph.com/query/94914/bubble-wars/version/latest"; // The Graph endpoint URL
+const GRAPH_API_URL = "https://api.studio.thegraph.com/query/94914/bubble-wars/version/latest";
 
 // GraphQL query to fetch leaderboard data
 const LEADERBOARD_QUERY = gql`
 {
-  bubbles(orderBy:points, orderDirection:desc) {
+  bubbles(orderBy: points, orderDirection: desc) {
     id
     points
     lastRaid
@@ -13,31 +13,30 @@ const LEADERBOARD_QUERY = gql`
 }
 `;
 
-/**
- * Type definition for the leaderboard data
- */
-interface LeaderboardData {
-  leaderboards: {
-    id: string;
-    players: string[];
-    scores: number[];
-  }[];
+interface Bubble {
+  id: string;
+  points: string; // Updated to handle points as a string
+  lastRaid: string;
 }
 
-/**
- * Fetches the leaderboard data from The Graph
- */
 export async function fetchLeaderboard() {
   try {
-    const data = await request<LeaderboardData>(GRAPH_API_URL, LEADERBOARD_QUERY);
+    const data = await request<{ bubbles: Bubble[] }>(GRAPH_API_URL, LEADERBOARD_QUERY);
 
-    if (data && data.leaderboards) {
-      const players = data.leaderboards[0]?.players ?? [];
-      const scores = data.leaderboards[0]?.scores ?? [];
-      return { players, scores };
+    if (data && data.bubbles.length > 0) {
+      // Convert points to numbers
+      const leaderboard = data.bubbles.map((entry) => ({
+        id: entry.id,
+        points: parseInt(entry.points, 10),
+        lastRaid: entry.lastRaid,
+      }));
+
+      console.log('Leaderboard:', leaderboard);
+      return leaderboard;
     }
 
-    return { players: [], scores: [] };
+    console.log('No data found');
+    return [];
   } catch (error) {
     console.error('Error fetching data from The Graph:', error);
     return null;

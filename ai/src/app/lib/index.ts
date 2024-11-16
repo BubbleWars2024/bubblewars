@@ -8,7 +8,6 @@ dotenv.config();
 
 async function GET(req: Request): Promise<Response> {
     let result = { message: '' };
-    const secrets = req.secret || {};
     const queries = req.queries;
     const tappdClient = new TappdClient();
 
@@ -55,29 +54,36 @@ async function GET(req: Request): Promise<Response> {
     } else {
 
 
+        // Fetch leaderboard data from TheGraph
+        const leaderboardData = await fetchLeaderboard();
+        let onChainContext = 'Leaderboard data not available';
 
+        if (leaderboardData && leaderboardData.length > 0) {
+            onChainContext = leaderboardData
+                .map((entry: any, index: number) => `${index + 1}. Player ${entry.id}: ${entry.points} points`)
+                .join('\n');
+        }
 
-        // Use Open AI to generate response based on on-chain leaderboard context.
-        // const onChainData = await fetchLeaderboard();
-        // let onChainContext = 'On-chain data not available';
-        // if (onChainData) {
-        //     const { players, scores } = onChainData;
-        //     onChainContext = `Current leaderboard: ${players.map((p: any, i: any) => `${p}: ${scores[i]}`).join(', ')}`;
-        // }
-
-        const prompt = queries.chatQuery ? queries.chatQuery[0] as string : 'Update me on the current leaderboard';
+        // Generate a response using OpenAI based on the leaderboard context
+        const prompt = queries.chatQuery ? queries.chatQuery[0] as string : 'Provide an update on the leaderboard.';
         const openai = new OpenAI({ apiKey: openaiApiKey });
-        const completion = await openai.chat.completions.create({
-            messages: [
-                // { role: 'system', content: `You have access to on-chain data: ${onChainContext}` },
-                { role: 'user', content: prompt }
-            ],
-            model: 'gpt-3.5-turbo',
-        });
 
-        result.message = completion.choices
-            ? (completion.choices[0].message.content as string)
-            : 'Failed to get result';
+        try {
+            const completion = await openai.chat.completions.create({
+                messages: [
+                    { role: 'system', content: `You have access to the latest leaderboard data:\n${onChainContext}` },
+                    { role: 'user', content: prompt }
+                ],
+                model: 'gpt-3.5-turbo',
+            });
+
+            result.message = completion.choices
+                ? (completion.choices[0].message.content as string)
+                : 'Failed to get result';
+        } catch (error) {
+            console.error('OpenAI API Error:', error);
+            result.message = 'Error generating response from OpenAI.';
+        }
     }
 
     return new Response(JSON.stringify(result), {
