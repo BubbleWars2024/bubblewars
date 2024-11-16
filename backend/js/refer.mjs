@@ -158,6 +158,12 @@ export const getTotalReferrals = async (data) => {
     }
 
 
+    // Early exit on no referSource.
+    if (!referSource) {
+        return createResponse(200, 'OK', 'getTotalReferrals', 'Referral created', { totalReferrals: 0 });
+    }
+
+
     // Init dev wallet.
     let devWallet;
     try {
@@ -178,13 +184,14 @@ export const getTotalReferrals = async (data) => {
     }
 
 
-    // Create referral.
+    // Get total referrals.
     let totalReferrals;
     try {
-        let totalReferrals = await referContract.getTotalReferrals(
+        let totalReferralsRaw = await referContract.getTotalReferrals(
             0,
             referSource
         );
+        totalReferrals = totalReferralsRaw.toString();
         console.log('totalReferrals', totalReferrals);
     } catch (error) {
         return createResponse(500, 'Internal Server Error', 'getTotalReferrals', `Failed to get total referrals: ${error.message}`);

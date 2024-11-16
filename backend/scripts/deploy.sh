@@ -14,6 +14,10 @@ echo "Updating node modules..."
 npm install
 
 
+echo "Pruning devDependencies..."
+npm prune --production
+
+
 # Zip the Lambda function code.
 echo "Zipping Lambda function code..."
 zip -r ./$ZIP_FILE .

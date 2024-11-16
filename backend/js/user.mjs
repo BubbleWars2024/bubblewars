@@ -2,12 +2,10 @@ import AWS from 'aws-sdk';
 export const dynamoDb = new AWS.DynamoDB.DocumentClient();
 import crypto from 'crypto';
 import { ethers } from 'ethers';
-import { useEnsName } from 'wagmi';
-import { sepolia } from 'wagmi/chains';
+
 
 import { createResponse, parseTelegramUserData, verifyTelegramUser } from './utils.mjs';
 import { getTotalReferrals } from './refer.mjs';
-import { normalize } from 'viem/ens';
 
 
 export const login = async (telegramInitData) => {
@@ -31,7 +29,7 @@ export const login = async (telegramInitData) => {
         telegramUser = telegramUserData.telegramUser;
         telegramUserId = telegramUserData.telegramUserId;
 
-        if (!telegramUser.id) {
+        if (!telegramUser?.id) {
             throw new Error('Invalid user data');
         }
 
@@ -47,6 +45,7 @@ export const login = async (telegramInitData) => {
     let userData;
     try {
         const user = await readUser(telegramUserId);
+        console.log('user DEBUG', user);
 
         if (user.statusCode == 200) {
             userData = JSON.parse(user.body).data;
@@ -146,15 +145,16 @@ export const login = async (telegramInitData) => {
         // Define the parent domain and subdomain
         let label;
         if (telegramUser.username) {
-            label = normalize(telegramUser.username);
+            // label = normalize(telegramUser.username);
+            label = telegramUser.username.toLowerCase();
         } else {
-            label = normalize(telegramUserId.toString());
+            // label = normalize(telegramUserId.toString());
+            label = telegramUserId.toString().toLowerCase();
         }
 
         const tx = await ensRegistar.register(label, address, {
             gasLimit: 500000,
         });
-
 
         console.log(`Transaction sent: ${tx.hash}`);
 
@@ -198,7 +198,40 @@ export const login = async (telegramInitData) => {
 };
 
 
-export const readUser = async (telegramUserId) => {
+export const readUser = async (data) => {
+    let telegramUserId;
+    if (data.telegramInitData) {
+        // Parse data.
+        let telegramInitData;
+        try {
+            telegramInitData = data.telegramInitData;
+        } catch (error) {
+            return createResponse(400, 'Bad Request', 'readUser', 'Invalid data');
+        }
+    
+    
+        // Parse Telegram user data.
+        let telegramUser;
+        try {
+            const telegramUserData = parseTelegramUserData(telegramInitData);
+            telegramUser = telegramUserData.telegramUser;
+            telegramUserId = telegramUserData.telegramUserId;
+    
+            if (!telegramUser?.id) {
+                throw new Error('Invalid user data');
+            }
+    
+            if (telegramUserData.is_bot) {
+                return createResponse(403, 'Forbidden', 'login', 'Bots cannot play');
+            }
+        } catch (error) {
+            return createResponse(400, 'Bad Request', 'login', `Failed to parse Telegram user data ${error.message}`);
+        }
+    } else {
+        telegramUserId = data;
+    }
+
+
     // Read user from db.
     let userRecord = {};
     try {
@@ -219,26 +252,31 @@ export const readUser = async (telegramUserId) => {
         return createResponse(500, 'Internal Server Error', 'readUser', `Failed to read user data: ${error.message}`);
     }
 
+
     // Read user from referrals contract.
     try {
         const totalReferrals = await getTotalReferrals(userRecord.walletAddress);
-        userRecord.totalReferrals = totalReferrals;
+        userRecord.totalReferrals = totalReferrals || 0;
     } catch (error) {
-        return createResponse(500, 'Internal Server Error', 'readUser', `Failed to read user referrals: ${error.message}`);
+        // return createResponse(500, 'Internal Server Error', 'readUser', `Failed to read user referrals: ${error.message}`);
     }
+
 
     // Read user's ENS.
-    try {
-        const { data: name } = useEnsName({
-            address: userRecord.walletAddress,
-            chainId: sepolia.id,
-        });
+    // try {
+    //     // const provider = new ethers.JsonRpcProvider('https://1rpc.io/sepolia');
+    //     // const ensName = await provider.lookupAddress(userRecord.walletAddress);
+    //     // console.log('ensName', ensName);
+    //     // userRecord.ens = ensName;
 
-        userRecord.ens = name;
-
-    } catch (error) {
-        return createResponse(500, 'Internal Server Error', 'readUser', `Failed to read user ENS: ${error.message}`);
-    }
+    //     const { data: name } = useEnsName({
+    //         address: userRecord.walletAddress,
+    //         chainId: sepolia.id,
+    //     });
+    //     userRecord.ens = name;
+    // } catch (error) {
+    //     return createResponse(500, 'Internal Server Error', 'readUser', `Failed to read user ENS: ${error.message}`);
+    // }
 
 
     // Return success.

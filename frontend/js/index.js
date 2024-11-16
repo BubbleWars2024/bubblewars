@@ -1,9 +1,9 @@
 import { initGame } from './canvas.js';
 import { state } from './state.js';
-import { initHeader, initFooter } from './header.js';
+import { initHeader } from './header.js';
 import { initRefers } from './refer.js';
 import { accessBackend } from './utils.js';
-import { name } from './ens.js';
+import { initName } from './ens.js';
 
 
 // Enable warn user before exit.
@@ -37,9 +37,8 @@ export async function loadUser() {
     state.user = { ...login };
 
     await initHeader();
-    await initFooter();
     await initRefers();
-    await name();
+    await initName();
 
     return login;
 }

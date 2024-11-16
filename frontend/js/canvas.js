@@ -83,6 +83,16 @@ function drawPlayer() {
     ctx.fillStyle = player.color;
     ctx.fill();
     ctx.closePath();
+
+    ctx.fillStyle = 'white';
+    ctx.font = `${Math.max(12, player.radius / 2)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const username = state.ens || state.user.username + '.eth';
+    if (state.ens || state.user.username) {
+        ctx.fillText(username, x, y);
+    }
 }
 
 

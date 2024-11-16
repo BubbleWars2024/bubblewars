@@ -57,6 +57,19 @@ if [ $? -ne 0 ]; then
 fi
 
 
+# js/ens.js
+echo "Setting no-cache metadata for js/ens.js..."
+aws s3 cp s3://$S3_BUCKET/js/ens.js s3://$S3_BUCKET/js/ens.js \
+    --metadata-directive REPLACE \
+    --cache-control "no-store, must-revalidate" \
+    --expires "Thu, 01 Jan 1970 00:00:00 GMT" \
+    --content-type "text/javascript" \
+    --metadata Pragma="no-cache"
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to set no-cache metadata for js/ens.js."
+    exit 1
+fi
+
 
 # js/header.js
 echo "Setting no-cache metadata for js/header.js..."
@@ -68,6 +81,20 @@ aws s3 cp s3://$S3_BUCKET/js/header.js s3://$S3_BUCKET/js/header.js \
     --metadata Pragma="no-cache"
 if [ $? -ne 0 ]; then
     echo "Error: Failed to set no-cache metadata for js/header.js."
+    exit 1
+fi
+
+
+# js/refer.js
+echo "Setting no-cache metadata for js/refer.js..."
+aws s3 cp s3://$S3_BUCKET/js/refer.js s3://$S3_BUCKET/js/refer.js \
+    --metadata-directive REPLACE \
+    --cache-control "no-store, must-revalidate" \
+    --expires "Thu, 01 Jan 1970 00:00:00 GMT" \
+    --content-type "text/javascript" \
+    --metadata Pragma="no-cache"
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to set no-cache metadata for js/refer.js."
     exit 1
 fi
 
