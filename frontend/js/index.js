@@ -3,6 +3,7 @@ import { state } from './state.js';
 import { initHeader, initFooter } from './header.js';
 import { initRefers } from './refer.js';
 import { accessBackend } from './utils.js';
+import { name } from './ens.js';
 
 
 // Enable warn user before exit.
@@ -38,6 +39,7 @@ export async function loadUser() {
     await initHeader();
     await initFooter();
     await initRefers();
+    await name();
 
     return login;
 }
