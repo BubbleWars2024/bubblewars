@@ -1,4 +1,6 @@
 export const state = {
-    score: 34,
+    eats: 0,
+    paused: false,
+    refers: 2,
     user: {}
 };

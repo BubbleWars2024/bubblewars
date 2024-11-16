@@ -1,8 +1,12 @@
 import crypto from 'crypto';
 import { ethers } from 'ethers';
+
 import AWS from 'aws-sdk';
 export const dynamoDb = new AWS.DynamoDB.DocumentClient();
+
 import { createResponse, parseTelegramUserData, verifyTelegramUser } from './utils.mjs';
+import { getReferralsCount } from './refer.mjs';
+import { readENS } from './ens.mjs';
 
 
 export const login = async (telegramInitData) => {
@@ -156,9 +160,13 @@ export const readUser = async (telegramUserId) => {
 
     // Read user from referrals contract.
     // TODO
-    try {} catch (error) {}
+    try {
+        // getReferralsCount
+    } catch (error) {}
     
     // Read user's ENS.
     // TODO
-    try {} catch (error) {}
+    try {
+        // readENS
+    } catch (error) {}
 };

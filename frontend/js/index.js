@@ -1,6 +1,7 @@
 import { initGame } from './canvas.js';
 import { state } from './state.js';
-import { initHeader } from './header.js';
+import { initHeader, initFooter } from './header.js';
+import { initRefers } from './refer.js';
 import { accessBackend } from './utils.js';
 
 
@@ -35,6 +36,8 @@ export async function loadUser() {
     state.user = { ...login };
 
     await initHeader();
+    await initFooter();
+    await initRefers();
 
     return login;
 }
@@ -44,6 +47,6 @@ export async function loadUser() {
 document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([
         loadUser(),
-        initGame()
+        initGame(),
     ]);
 });
