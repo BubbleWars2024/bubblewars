@@ -17,3 +17,17 @@ export async function initName() {
         document.getElementById('username').innerText = state.ens;
     }
 }
+
+
+export async function getPlayerEnsName(address) {
+    const data = {
+        address
+    };
+    let ensName = await accessBackend('ens/name', data);
+    // Trim address to first 6 characters.
+    if (!ensName) {
+        ensName = address.slice(0, 6);
+    }
+    console.log('ensName', ensName);
+    return ensName;
+}

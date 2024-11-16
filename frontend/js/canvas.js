@@ -1,4 +1,6 @@
 import { state } from './state.js';
+import { getPlayers } from './multiplayer.js';
+import { getPlayerEnsName } from './ens.js';
 
 
 //// CANVAS ////
@@ -160,6 +162,15 @@ function drawBubble(bubble) {
     ctx.fillStyle = bubble.color;
     ctx.fill();
     ctx.closePath();
+
+    // Draw ENS name if it exists
+    if (bubble.ensName) {
+        ctx.fillStyle = 'white';
+        ctx.font = `${Math.max(12, player.radius / 2)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(bubble.ensName, x, y);
+    }
 }
 
 
@@ -201,6 +212,31 @@ function updateBubbles() {
         if (bubble.x < 0 || bubble.x > worldWidth || bubble.y < 0 || bubble.y > worldHeight) {
             bubbles.splice(i, 1);
         }
+    }
+}
+
+
+//// MULTIPLAYER ////
+
+
+async function initMultiplayerBubbles() {
+    const data = await getPlayers();
+
+    const bubblesData = data.bubbles;
+
+    for (const bubble of bubblesData) {
+        const bubbleObject = {
+            id: bubble.id,
+            // Position bubbles around the player's starting position
+            x: player.x + (Math.random() * 200 - 100), // Within 100 pixels of the player
+            y: player.y + (Math.random() * 200 - 100), // Within 100 pixels of the player
+            radius: parseInt(bubble.points) * 10, // Scale radius based on points
+            color: 'black', // Set bubble color to black
+            dx: (Math.random() - 0.5) * 1.5,
+            dy: (Math.random() - 0.5) * 1.5,
+            ensName: await getPlayerEnsName(bubble.id)
+        };
+        bubbles.push(bubbleObject);
     }
 }
 
@@ -374,7 +410,9 @@ window.addEventListener('resize', () => {
 
 
 // Initialize the game with timestamp
-export function initGame() {
+export async function initGame() {
+    await initMultiplayerBubbles();
+
     // Spawn some initial bubbles
     for (let i = 0; i < 50; i++) {
         createRandomBubble();

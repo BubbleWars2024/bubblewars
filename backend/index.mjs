@@ -1,6 +1,7 @@
 import { createReferral, getTotalReferrals } from './js/refer.mjs';
 import { login, readUser } from './js/user.mjs';
 import { createResponse } from './js/utils.mjs';
+import { getEnsName } from './js/ens.mjs';
 
 
 export const handler = async (event) => {
@@ -47,6 +48,10 @@ export const handler = async (event) => {
     // Execute specific user operation.
     try {
         switch (path) {
+            // ENS.
+            case '/ens/name':
+                return await getEnsName(data);
+
             // Play.
             case '/play/attack':
                 return await attack(data);
