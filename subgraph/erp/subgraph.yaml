@@ -10,21 +10,29 @@ dataSources:
     source:
       address: "0xD0B8D0425b737A920Db0B7581Cd2c45CB8caF0fa"
       abi: ERP
-      startBlock: 17984158
+      startBlock: 17984157
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
       language: wasm/assemblyscript
       entities:
-        - ReferralProgram
-        - ReferralTotal
-        - Referral
+        - Approval
+        - ApprovalForAll
+        - NewReferralProgram
+        - SetReferral
+        - Transfer
       abis:
         - name: ERP
           file: ./abis/ERP.json
       eventHandlers:
+        - event: Approval(indexed address,indexed address,indexed uint256)
+          handler: handleApproval
+        - event: ApprovalForAll(indexed address,indexed address,bool)
+          handler: handleApprovalForAll
         - event: NewReferralProgram(indexed address,indexed uint256,address[])
           handler: handleNewReferralProgram
         - event: SetReferral(indexed uint256,indexed address,indexed address)
           handler: handleSetReferral
+        - event: Transfer(indexed address,indexed address,indexed uint256)
+          handler: handleTransfer
       file: ./src/erp.ts
