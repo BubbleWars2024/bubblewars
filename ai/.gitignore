@@ -5,6 +5,12 @@
 /.pnp
 .pnp.js
 .yarn/install-state.gz
+venv
+.venv
+myenv
+__pycache__
+*.pyc
+*.pyo
 
 # testing
 /coverage
