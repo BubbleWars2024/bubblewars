@@ -1,3 +1,6 @@
+import { state } from './state.js';
+
+
 //// CANVAS ////
 
 
@@ -114,17 +117,24 @@ function checkCollisionAndAbsorb() {
         if (distance < player.radius + bubble.radius) {
             if (bubble.radius < player.radius) {
                 // Player eats the smaller bubble
-                player.radius += bubble.radius * 0.05; // Decrease growth rate
+                const growthAmount = bubble.radius * 0.05; // Growth rate reduced
+                player.radius += growthAmount;
+                state.eats += growthAmount; // Increase the eats count
                 bubbles.splice(i, 1); // Remove the eaten bubble
             } else {
                 // Larger bubble absorbs from the player
-                const sizeTaken = bubble.radius * 0.05;
+                const sizeTaken = player.radius * 0.05; // Take a percentage of player's size
                 player.radius -= sizeTaken;
-                
+
                 // Prevent player radius from going below a minimum size
                 player.radius = Math.max(player.radius, 10);
+
+                state.eats -= sizeTaken; // Decrease the eats count, relative to player size
+                state.eats = Math.max(0, state.eats); // Ensure eats doesn't go negative
             }
         }
+        // Update the display
+        document.getElementById('eats').innerText = state.eats.toFixed(2);
     }
 }
 
@@ -308,6 +318,8 @@ function updatePlayerDirection() {
 
 
 function gameLoop(timestamp) {
+    if (state.paused) return;
+
     if (!lastTimestamp) lastTimestamp = timestamp;
 
     let deltaTime = (timestamp - lastTimestamp) / 1000;
@@ -320,8 +332,8 @@ function gameLoop(timestamp) {
     drawGrid();
     updatePlayer(deltaTime);
     updateBubbles();
-    spawnBubbles(deltaTime); // Spawn new bubbles over time
-    checkCollisionAndAbsorb(); // Check for collisions and absorb bubbles
+    spawnBubbles(deltaTime);
+    checkCollisionAndAbsorb();
     drawPlayer();
 
     for (const bubble of bubbles) {
@@ -360,4 +372,21 @@ export function initGame() {
     
     initControls();
     requestAnimationFrame(gameLoop);
+}
+
+
+//// PAUSED ////
+
+
+export function pauseGame() {
+    state.paused = true;
+    console.log('Game paused');
+}
+
+export function resumeGame() {
+    if (state.paused) {
+        state.paused = false;
+        console.log('Game resumed');
+        requestAnimationFrame(gameLoop);
+    }
 }

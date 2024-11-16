@@ -1,8 +1,12 @@
-import crypto from 'crypto';
-import { ethers } from 'ethers';
 import AWS from 'aws-sdk';
 export const dynamoDb = new AWS.DynamoDB.DocumentClient();
+import crypto from 'crypto';
+import { ethers } from 'ethers';
+
+
 import { createResponse, parseTelegramUserData, verifyTelegramUser } from './utils.mjs';
+import { getTotalReferrals } from './refer.mjs';
+import { readENS } from './ens.mjs';
 import { normalize, labelhash, namehash } from 'viem/ens';
 
 
@@ -73,33 +77,54 @@ export const login = async (telegramInitData) => {
     }
 
 
-    // Create a new Ethereum EOA for the user
-    let wallet, privateKey, address;
+    // Check if the new user already has an EOA in the pending refers table.
+    let address;
     try {
-        wallet = ethers.Wallet.createRandom();
-        privateKey = wallet.privateKey;
-        address = wallet.address;
+        const params = {
+            TableName: process.env.PENDING_REFERS_TABLE_NAME,
+            Key: {
+                PK: telegramUser.username
+            }
+        };
+        const result = await dynamoDb.get(params).promise();
+
+        if (result?.Item) {
+            address = result.Item.walletAddress;
+        }
     } catch (error) {
-        return createResponse(500, 'Internal Server Error', 'login', 'Failed to create Ethereum wallet');
+        return createResponse(500, 'Internal Server Error', 'login', `Failed to check pending user: ${error.message}`);
     }
 
 
-    // Encrypt private key.
-    let encryptedPrivateKey;
-    try {
-        const cipher = crypto.createCipher('aes-256-cbc', process.env.PRIVATE_KEY_ENCRYPTION_KEY);
-        encryptedPrivateKey = cipher.update(privateKey, 'utf8', 'hex') + cipher.final('hex');
+    // Create a new Ethereum EOA for the user.
+    if (!address) {
+        let wallet, privateKey;
+        try {
+            wallet = ethers.Wallet.createRandom();
+            privateKey = wallet.privateKey;
+            address = wallet.address;
+        } catch (error) {
+            return createResponse(500, 'Internal Server Error', 'login', 'Failed to create Ethereum wallet');
+        }
 
-        const params = {
-            TableName: process.env.ENCRYPTED_PRIVATE_KEY_TABLE_NAME,
-            Item: {
-                PK: address,
-                SK: encryptedPrivateKey
-            }
-        };
-        await dynamoDb.put(params).promise();
-    } catch (error) {
-        return createResponse(500, 'Internal Server Error', 'login', error.message);
+
+        // Encrypt private key.
+        let encryptedPrivateKey;
+        try {
+            const cipher = crypto.createCipher('aes-256-cbc', process.env.PRIVATE_KEY_ENCRYPTION_KEY);
+            encryptedPrivateKey = cipher.update(privateKey, 'utf8', 'hex') + cipher.final('hex');
+
+            const params = {
+                TableName: process.env.ENCRYPTED_PRIVATE_KEY_TABLE_NAME,
+                Item: {
+                    PK: address,
+                    SK: encryptedPrivateKey
+                }
+            };
+            await dynamoDb.put(params).promise();
+        } catch (error) {
+            return createResponse(500, 'Internal Server Error', 'login', error.message);
+        }
     }
 
 
@@ -187,7 +212,6 @@ export const readUser = async (telegramUserId) => {
 
         if (result?.Item) {
             userRecord = result.Item;
-            return createResponse(200, 'OK', 'readUser', 'User found', userRecord);
         } else {
             return createResponse(404, 'Not Found', 'readUser', 'User not found');
         }
@@ -196,10 +220,22 @@ export const readUser = async (telegramUserId) => {
     }
 
     // Read user from referrals contract.
-    // TODO
-    try {} catch (error) {}
+    try {
+        const totalReferrals = await getTotalReferrals(userRecord.walletAddress);
+        userRecord.totalReferrals = totalReferrals;
+    } catch (error) {
+        return createResponse(500, 'Internal Server Error', 'readUser', `Failed to read user referrals: ${error.message}`);
+    }
     
     // Read user's ENS.
     // TODO
-    try {} catch (error) {}
+    try {
+        // readENS
+    } catch (error) {
+        return createResponse(500, 'Internal Server Error', 'readUser', `Failed to read user ENS: ${error.message}`);
+    }
+
+
+    // Return success.
+    return createResponse(200, 'OK', 'readUser', 'User found', userRecord);
 };

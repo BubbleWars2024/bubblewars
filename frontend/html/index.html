@@ -42,17 +42,35 @@
         <div>
             <img id="logo" src="https://bubblewars2024.s3.ap-southeast-1.amazonaws.com/assets/logo.png" alt="Logo">
         </div>
-        <!-- Username. -->
-        <div id="username"></div>
         <!-- Score. -->
-        <div id="score"></div>
+        <div id="score">
+            <div>eats: <span id="eats">0</span></div>
+            <div>refers: <span id="refers">0</span></div>
+        </div>
     </header>
 
 
     <!-- Game canvas. -->
     <canvas id="gameCanvas"></canvas>
-    
-    
+
+
+    <!-- Footer. -->
+    <footer id="footer">
+        <!-- Refers. -->
+        <div id="referIcon">🤝</div>
+        <div id="referBox" style="display: none;">
+            <div class="text">invite 1 friend</div>
+            <input type="text" placeholder="telegramUsername" class="input" id="referFriendInput">
+            <div>
+                <button class="miniButton" id="submitReferFriendButton">refer</button>
+                <button class="miniButton" id="exitReferFriendButton">exit</button>
+            </div>
+        </div>
+        <!-- Username. -->
+        <div id="username"></div>
+    </footer>
+
+
     <!-- Import JS. -->
     <script type="module" src="../js/index.js"></script>
 </body>

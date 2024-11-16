@@ -2,7 +2,7 @@
 
 
 # Define variables.
-LAMBDA_FUNCTION_NAME="bubblewars-backend-2"
+LAMBDA_FUNCTION_NAME="bubblewars-backend"
 ZIP_FILE="lambda.zip"
 
 

@@ -1,3 +1,4 @@
+import { createReferral, getTotalReferrals } from './js/refer.mjs';
 import { login, readUser } from './js/user.mjs';
 import { createResponse } from './js/utils.mjs';
 
@@ -51,10 +52,10 @@ export const handler = async (event) => {
                 return await attack(data);
 
             // Referrals.
-            case '/referral/create':
+            case '/refer/create':
                 return await createReferral(data);
-            case '/referral/count':
-                return await getReferralsCount(data);
+            case '/refer/total':
+                return await getTotalReferrals(data);
 
             // User.
             case '/user/login':
