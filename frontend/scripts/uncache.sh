@@ -139,3 +139,17 @@ if [ $? -ne 0 ]; then
     echo "Error: Failed to set no-cache metadata for js/multiplayer.js."
     exit 1
 fi
+
+
+# js/ai.js
+echo "Setting no-cache metadata for js/ai.js..."
+aws s3 cp s3://$S3_BUCKET/js/ai.js s3://$S3_BUCKET/js/ai.js \
+    --metadata-directive REPLACE \
+    --cache-control "no-store, must-revalidate" \
+    --expires "Thu, 01 Jan 1970 00:00:00 GMT" \
+    --content-type "text/javascript" \
+    --metadata Pragma="no-cache"
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to set no-cache metadata for js/ai.js."
+    exit 1
+fi
