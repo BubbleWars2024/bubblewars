@@ -16,23 +16,15 @@ dataSources:
       apiVersion: 0.0.7
       language: wasm/assemblyscript
       entities:
-        - Approval
-        - ApprovalForAll
-        - NewReferralProgram
-        - SetReferral
-        - Transfer
+        - ReferralProgram
+        - ReferralTotal
+        - Referral
       abis:
         - name: ERP
           file: ./abis/ERP.json
       eventHandlers:
-        - event: Approval(indexed address,indexed address,indexed uint256)
-          handler: handleApproval
-        - event: ApprovalForAll(indexed address,indexed address,bool)
-          handler: handleApprovalForAll
         - event: NewReferralProgram(indexed address,indexed uint256,address[])
           handler: handleNewReferralProgram
         - event: SetReferral(indexed uint256,indexed address,indexed address)
           handler: handleSetReferral
-        - event: Transfer(indexed address,indexed address,indexed uint256)
-          handler: handleTransfer
       file: ./src/erp.ts

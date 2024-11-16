@@ -1,89 +1,56 @@
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
-  Approval as ApprovalEvent,
-  ApprovalForAll as ApprovalForAllEvent,
-  NewReferralProgram as NewReferralProgramEvent,
-  SetReferral as SetReferralEvent,
-  Transfer as TransferEvent
-} from "../generated/ERP/ERP"
+    NewReferralProgram as NewReferralProgramEvent,
+    SetReferral as SetReferralEvent,
+} from "../generated/ERP/ERP";
 import {
-  Approval,
-  ApprovalForAll,
-  NewReferralProgram,
-  SetReferral,
-  Transfer
-} from "../generated/schema"
-
-export function handleApproval(event: ApprovalEvent): void {
-  let entity = new Approval(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.owner = event.params.owner
-  entity.approved = event.params.approved
-  entity.tokenId = event.params.tokenId
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
-}
-
-export function handleApprovalForAll(event: ApprovalForAllEvent): void {
-  let entity = new ApprovalForAll(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.owner = event.params.owner
-  entity.operator = event.params.operator
-  entity.approved = event.params.approved
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
-}
+    ReferralProgram,
+    ReferralTotal,
+    Referral
+} from "../generated/schema";
 
 export function handleNewReferralProgram(event: NewReferralProgramEvent): void {
-  let entity = new NewReferralProgram(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.to = event.params.to
-  entity.programId = event.params.programId
-  entity.hooks = event.params.hooks
+    let referralProgram = new ReferralProgram(referralProgramId(event.params.programId));
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+    referralProgram.deployer = event.transaction.from;
+    referralProgram.hooks = changetype<Bytes[]>(event.params.hooks);
 
-  entity.save()
+    referralProgram.save();
 }
 
 export function handleSetReferral(event: SetReferralEvent): void {
-  let entity = new SetReferral(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.programId = event.params.programId
-  entity.account = event.params.account
-  entity.referral = event.params.referral
+    let referral = new Referral(referralId(event.transaction.hash, event.logIndex));
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+    referral.account = event.params.account;
+    referral.referral = event.params.referral;
+    referral.referralProgram = referralProgramId(event.params.programId);
+    
+    let referralTotal = ReferralTotal.load(referralTotalId(event.params.referral, event.params.programId));
+    if(!referralTotal) {
+        referralTotal = new ReferralTotal(referralTotalId(event.params.referral, event.params.programId));
+    
+        referralTotal.address = event.params.referral;
+        referralTotal.total = BigInt.zero();
+        referralTotal.referralProgram = referralProgramId(event.params.programId);
+    }
+    referralTotal.total = referralTotal.total.plus(BigInt.fromI32(1));
 
-  entity.save()
+    referral.save();
+    referralTotal.save();
 }
 
-export function handleTransfer(event: TransferEvent): void {
-  let entity = new Transfer(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.from = event.params.from
-  entity.to = event.params.to
-  entity.tokenId = event.params.tokenId
+function referralProgramId(programId: BigInt): Bytes {
+    return Bytes.fromHexString(uint256ToHex(programId));
+}
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+function referralTotalId(referral: Address, programId: BigInt): Bytes {
+    return referral.concat(Bytes.fromHexString(uint256ToHex(programId)));
+}
 
-  entity.save()
+function referralId(transactionHash: Bytes, logIndex: BigInt): Bytes {
+    return transactionHash.concatI32(logIndex.toI32());
+}
+
+function uint256ToHex(value: BigInt): string {
+    return `0x${value.toHex().replace("0x", "").padStart(64, "0")}`;
 }
