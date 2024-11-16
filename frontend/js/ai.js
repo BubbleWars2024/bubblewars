@@ -14,10 +14,10 @@ async function fetchLeaderboard() {
             return null;
         }
 
-        const data = await response.json();
-        if (data.message) {
-            console.log('Fetched leaderboard successfully:', data.message);
-            return data.message;
+        const data = await response.text();
+        if (data) {
+            console.log('Fetched leaderboard successfully:', data);
+            return data;
         } else {
             console.error('No message found in response:', data);
             return null;
