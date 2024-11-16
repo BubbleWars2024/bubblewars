@@ -27,13 +27,21 @@ const worldHeight = 2000;
 
 //// PLAYER ////
 
+function getRandomColor() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
 
 // Player object with reduced speed
 const player = {
     x: worldWidth / 2,
     y: worldHeight / 2,
     radius: 30,
-    color: 'blue',
+    color: getRandomColor(),
     speed: 0.1,
     dx: 0,
     dy: 0
@@ -80,23 +88,30 @@ function worldToScreen(worldX, worldY) {
 // Draw the player bubble
 function drawPlayer() {
     const { x, y } = worldToScreen(player.x, player.y);
+    const gradient = ctx.createRadialGradient(x, y, player.radius * 0.5, x, y, player.radius);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)'); // Semi-transparent white
+    gradient.addColorStop(1, player.color);
+
     ctx.beginPath();
     ctx.arc(x, y, player.radius, 0, Math.PI * 2);
-    ctx.fillStyle = player.color;
+    ctx.fillStyle = gradient;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 5;
+    ctx.shadowOffsetY = 5;
     ctx.fill();
     ctx.closePath();
 
+    // Draw the player's username
     ctx.fillStyle = 'white';
     ctx.font = `${Math.max(12, player.radius / 2)}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-
     const username = state.ens || state.user.username + '.eth';
     if (state.ens || state.user.username) {
         ctx.fillText(username, x, y);
     }
 }
-
 
 // Update player position based on velocity and delta time
 function updatePlayer(deltaTime) {
@@ -157,22 +172,29 @@ function checkCollisionAndAbsorb() {
 // Function to draw a bubble
 function drawBubble(bubble) {
     const { x, y } = worldToScreen(bubble.x, bubble.y);
+    const gradient = ctx.createRadialGradient(x, y, bubble.radius * 0.5, x, y, bubble.radius);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)'); // Semi-transparent white
+    gradient.addColorStop(1, bubble.color);
+
     ctx.beginPath();
     ctx.arc(x, y, bubble.radius, 0, Math.PI * 2);
-    ctx.fillStyle = bubble.color;
+    ctx.fillStyle = gradient;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
     ctx.fill();
     ctx.closePath();
 
     // Draw ENS name if it exists
     if (bubble.ensName) {
         ctx.fillStyle = 'white';
-        ctx.font = `${Math.max(12, player.radius / 2)}px Arial`;
+        ctx.font = `${Math.max(12, bubble.radius / 2)}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(bubble.ensName, x, y);
     }
 }
-
 
 // Continuously create new random bubbles
 function createRandomBubble() {
@@ -183,7 +205,7 @@ function createRandomBubble() {
         x: Math.random() * worldWidth,
         y: Math.random() * worldHeight,
         radius: bubbleRadius,
-        color: 'green',
+        color: getRandomColor(),
         dx: (Math.random() - 0.5) * 1.5,
         dy: (Math.random() - 0.5) * 1.5
     };
@@ -417,7 +439,7 @@ export async function initGame() {
     for (let i = 0; i < 50; i++) {
         createRandomBubble();
     }
-    
+
     initControls();
     requestAnimationFrame(gameLoop);
 }
