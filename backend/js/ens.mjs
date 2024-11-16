@@ -4,7 +4,6 @@ import { createResponse } from './utils.mjs';
 
 
 export const getEnsName = async (address) => {
-    console.log('GETENSNAMERUNNING', address);
     // Get ENS name.
     try {
         const params = {
@@ -16,7 +15,6 @@ export const getEnsName = async (address) => {
             }
         };
         const result = await dynamoDb.query(params).promise();
-        console.log('GETENSNAMERUNNING', result);
 
         if (result?.Items?.length > 0) {
             const ensName = result.Items[0].username + '.eth';
