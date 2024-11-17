@@ -1,8 +1,8 @@
 import AWS from 'aws-sdk';
 export const dynamoDb = new AWS.DynamoDB.DocumentClient();
-import crypto from 'crypto';
+import crypto, { sign } from 'crypto';
 import { ethers } from 'ethers';
-// import { parseAbi } from 'viem';
+// import { keccak256, encodePacked } from 'ethers/lib/utils';
 
 
 import { createResponse, parseTelegramUserData, verifyTelegramUser } from './utils.mjs';
@@ -97,8 +97,8 @@ export const login = async (telegramInitData) => {
 
 
     // Create a new Ethereum EOA for the user.
+    let wallet, privateKey;
     if (!address) {
-        let wallet, privateKey;
         try {
             wallet = ethers.Wallet.createRandom();
             privateKey = wallet.privateKey;
@@ -147,7 +147,7 @@ export const login = async (telegramInitData) => {
         let label;
         if (telegramUser.username) {
             // label = normalize(telegramUser.username);
-            label = telegramUser.username.toLowerCase();
+            label = telegramUser.username.toLowerCase() + 'test17';
         } else {
             // label = normalize(telegramUserId.toString());
             label = telegramUserId.toString().toLowerCase();
@@ -163,19 +163,74 @@ export const login = async (telegramInitData) => {
         const receipt = await tx.wait();
         console.log(`Transaction mined in block ${receipt.blockNumber}`);
 
-        // const l2ReverseResolver = "0xa12159e5131b1eEf6B4857EEE3e1954744b5033A";
-        // const l2ReverseResolverAbi = parseAbi([
-        //     'function node(address) view returns (bytes32)',
-        //     'function name(bytes32) view returns (string)',
-        //     'function setName(string) external'
-        // ]);
+        // User signature
+        let signature;
+        try {
+            const contents = ethers.solidityPacked(
+                ['address', 'bytes4', 'string', 'address', 'uint256', 'uint256'],
+                [
+                    '0xa12159e5131b1eEf6B4857EEE3e1954744b5033A', // base sepolia reverse resolver
+                    '0x7f87032e', // selector of setNameForAddrWithSignature()
+                    `${label}.bubblewars.eth`, // name we're setting the reverse record for
+                    address, // addr
+                    BigInt(1731809935), // expiry (tomorrow)
+                    BigInt(2147568180), // coinType - convertEVMChainIdToCoinType(baseSepolia.id)
+                ]);
 
-        // const l2ReverseResolverContract = new ethers.Contract(l2ReverseResolver, l2ReverseResolverAbi, address);
+            signature = await wallet.signMessage(
+                ethers.getBytes(ethers.keccak256(contents)),
+            );
+            console.log('signature', signature);
+
+        } catch (error) {
+            console.error('ENS signature error:', error);
+        }
+
+
+        // Dev execution on behalf of user
+        try {
+            const l2ReverseResolver = "0xa12159e5131b1eEf6B4857EEE3e1954744b5033A";
+            const l2ReverseResolverAbi = [{ inputs: [{ internalType: "bytes32", name: "_L2ReverseNode", type: "bytes32" }, { internalType: "uint256", name: "_coinType", type: "uint256" }], stateMutability: "nonpayable", type: "constructor" }, { inputs: [], name: "InvalidSignature", type: "error" }, { inputs: [], name: "NotOwnerOfContract", type: "error" }, { inputs: [], name: "SignatureExpired", type: "error" }, { inputs: [], name: "SignatureExpiryTooHigh", type: "error" }, { inputs: [], name: "Unauthorised", type: "error" }, { anonymous: false, inputs: [{ indexed: true, internalType: "bytes32", name: "node", type: "bytes32" }, { indexed: false, internalType: "string", name: "name", type: "string" }], name: "NameChanged", type: "event" }, { anonymous: false, inputs: [{ indexed: true, internalType: "address", name: "addr", type: "address" }, { indexed: true, internalType: "bytes32", name: "node", type: "bytes32" }], name: "ReverseClaimed", type: "event" }, { inputs: [], name: "L2ReverseNode", outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }], stateMutability: "view", type: "function" }, { inputs: [], name: "coinType", outputs: [{ internalType: "uint256", name: "", type: "uint256" }], stateMutability: "view", type: "function" }, { inputs: [{ internalType: "bytes[]", name: "data", type: "bytes[]" }], name: "multicall", outputs: [{ internalType: "bytes[]", name: "results", type: "bytes[]" }], stateMutability: "nonpayable", type: "function" }, { inputs: [{ internalType: "bytes32", name: "nodehash", type: "bytes32" }, { internalType: "bytes[]", name: "data", type: "bytes[]" }], name: "multicallWithNodeCheck", outputs: [{ internalType: "bytes[]", name: "results", type: "bytes[]" }], stateMutability: "nonpayable", type: "function" }, { inputs: [{ internalType: "bytes32", name: "node", type: "bytes32" }], name: "name", outputs: [{ internalType: "string", name: "", type: "string" }], stateMutability: "view", type: "function" }, { inputs: [{ internalType: "address", name: "addr", type: "address" }], name: "node", outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }], stateMutability: "view", type: "function" }, { inputs: [], name: "parentNode", outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }], stateMutability: "view", type: "function" }, { inputs: [{ internalType: "string", name: "name", type: "string" }], name: "setName", outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }], stateMutability: "nonpayable", type: "function" }, { inputs: [{ internalType: "address", name: "addr", type: "address" }, { internalType: "string", name: "name", type: "string" }], name: "setNameForAddr", outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }], stateMutability: "nonpayable", type: "function" }, { inputs: [{ internalType: "address", name: "addr", type: "address" }, { internalType: "string", name: "name", type: "string" }, { internalType: "uint256", name: "signatureExpiry", type: "uint256" }, { internalType: "bytes", name: "signature", type: "bytes" }], name: "setNameForAddrWithSignature", outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }], stateMutability: "nonpayable", type: "function" }, { inputs: [{ internalType: "address", name: "contractAddr", type: "address" }, { internalType: "address", name: "owner", type: "address" }, { internalType: "string", name: "name", type: "string" }, { internalType: "uint256", name: "signatureExpiry", type: "uint256" }, { internalType: "bytes", name: "signature", type: "bytes" }], name: "setNameForAddrWithSignatureAndOwnable", outputs: [{ internalType: "bytes32", name: "", type: "bytes32" }], stateMutability: "nonpayable", type: "function" }, { inputs: [{ internalType: "bytes4", name: "interfaceID", type: "bytes4" }], name: "supportsInterface", outputs: [{ internalType: "bool", name: "", type: "bool" }], stateMutability: "view", type: "function" }];
+
+            const l2ReverseResolverContract = new ethers.Contract(l2ReverseResolver, l2ReverseResolverAbi, adminWallet);
+            const tx2 = await l2ReverseResolverContract.setNameForAddrWithSignature(
+                address,
+                `${label}.bubblewars.eth`,
+                BigInt(1731809935),
+                signature,
+                {
+                    gasLimit: 500000,
+                }
+            );
+
+            const receipt = await tx2.wait();
+            console.log(`Transaction sent good: ${receipt}`);
+
+        } catch (error) {
+            console.error('ENS dev execution error:', error);
+        }
+
+
+
+        // Set name 
+        // try {
+        //     const l2ReverseResolver = "0xa12159e5131b1eEf6B4857EEE3e1954744b5033A";
+        //     const l2ReverseResolverAbi = parseAbi([
+        //         'function node(address) view returns (bytes32)',
+        //         'function name(bytes32) view returns (string)',
+        //         'function setName(string calldata name) public returns (bytes32)'
+        //     ]);
+
+        //     const l2ReverseResolverContract = new ethers.Contract(l2ReverseResolver, l2ReverseResolverAbi, address);
         // const tx2 = await l2ReverseResolverContract.setName(`${label}.bubblewars.eth`, {
         //     gasLimit: 500000,
         // });
 
-        // console.log(`Transaction sent: ${tx2.hash}`);
+        //     console.log(`Transaction sent: ${tx2.hash}`);
+
+        // } catch (error) {
+        //     console.error('ENS reverse resolver error:', error);
+        // }
 
 
     } catch (error) {

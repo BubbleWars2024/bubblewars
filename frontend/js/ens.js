@@ -13,6 +13,7 @@ export async function initName() {
     const provider = new ethers.JsonRpcProvider('https://sepolia.drpc.org');
     const ensName = await provider.lookupAddress(readUser.walletAddress);
     state.ens = ensName;
+    console.log('ensName', ensName);
     if (state.ens) {
         document.getElementById('username').innerText = state.ens;
     }
