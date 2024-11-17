@@ -107,7 +107,7 @@ function drawPlayer() {
     ctx.font = `${Math.max(12, player.radius / 2)}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const username = state.ens || state.user.username + '.eth';
+    const username = state.ens || state.user.username + '.bubblewars.eth';
     if (state.ens || state.user.username) {
         ctx.fillText(username, x, y);
     }
