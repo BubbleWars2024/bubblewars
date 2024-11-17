@@ -81,6 +81,12 @@ contract L2Registrar is Ownable {
             abi.encodePacked(owner) // Address in bytes format
         );
 
+        targetRegistry.setAddr(
+            keccak256(bytes(label)), // Convert label to bytes32 hash
+            2147568180, // Base Sepolia
+            abi.encodePacked(owner) // Address in bytes format
+        );
+
         emit NameRegistered(label, owner);
     }
 }
