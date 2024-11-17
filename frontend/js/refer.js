@@ -9,7 +9,7 @@ export async function initRefers() {
         referSource: state.user.walletAddress
     };
     const totalRefers = await accessBackend('refer/total', data);
-    state.refers = totalRefers?.totalReferrals || 0;
+    state.refers = totalRefers?.totalReferrals || 2;
     document.getElementById('refers').innerText = state.refers;
 
 
